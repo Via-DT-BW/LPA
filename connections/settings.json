@@ -1,0 +1,5 @@
+[
+    {
+        "connection_string_db_teste_jose": "DRIVER={ODBC Driver 17 for SQL Server};SERVER=10.30.64.44;DATABASE=teste_jose;UID=josamorim;PWD=teste123"
+    }
+]

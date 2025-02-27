@@ -8,43 +8,63 @@
     <meta name="description" content="">
     <link rel="icon" type="image/ico" href="static/content/icon.PNG">
     <meta name="author" content="">
-    <title>Analytics OEE</title>
+    <title>LPA Management</title>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <link href="static/css/sb-admin-2.min.css" rel="stylesheet">
     <link href="static/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link
-        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
     <link rel="icon" type="image/ico" href="static/content/icon.webp">
     <style>
+        body {
+            font-family: "Montserrat";
+        }
         .nav-item.active.route {
             background-color: #051729;
             transition: background-color 0.3s ease;
         }
-
         .nav-item.active.route:hover {
             background-color: #2980b9;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .radio-group {
+            margin-top: 0.5rem;
+        }
+        .status-ok {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-nok {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .nok-description {
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .mt-2 {
+            margin-top: 0.5rem;
         }
     </style>
 </head>
 
 <body id="page-top">
     <div id="wrapper">
-        <ul class="navbar-nav  sidebar sidebar-dark accordion toggled" id="accordionSidebar"
-            style="background-color:#051729 ;">
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="">
-                <div class="sidebar-brand-icon ">
-                    <img src="static/content/icon.webp"
-                        style="height:45px;border-radius: 8px;box-shadow: 1px 1px 1px 1px rgba(44, 237, 212,0.5);"
-                        alt="LogoBogwarner">
-                </div>
-                <div class="sidebar-brand-text mx-3" style="color:#2cedd4">Forecast </div>
+        <ul class="navbar-nav sidebar sidebar-dark accordion toggled" id="accordionSidebar"
+            style="background-color:#051729;">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href=""
+                style="display: flex; align-items: center;">
+                <img src="static/content/check_sidebar.png" style="height:30px; margin-right: 5px;">
+                <span style="color: #2EFAD9; font-size: 20px; font-weight: bold;">
+                    LPA
+                </span>
             </a>
             <hr class="sidebar-divider my-0">
-            <!-- Nav Item - Dashboard -->
             <li class="nav-item active route">
-                <a class="nav-link" href="#" >
-                    <span>Voltar</span></a>
+                <a class="nav-link" href="/">
+                    <span>Voltar</span>
+                </a>
             </li>
             <hr class="sidebar-divider d-none d-md-block">
             <div class="text-center d-none d-md-inline">
@@ -53,8 +73,8 @@
         </ul>
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <nav class="navbar navbar-expand navbar-light  topbar mb-2 static-top shadow"
-                    style="background-color:#051729 ;">
+                <nav class="navbar navbar-expand navbar-light topbar mb-2 static-top shadow"
+                    style="background-color:#051729;">
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
                     </button>
@@ -63,16 +83,16 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline  small" style="color:white">{{ session['username']
-                                    }}</span>
+                                <span class="mr-2 d-none d-lg-inline small" style="color:white; font-weight: bold;">
+                                    {{ session['username'] }}
+                                </span>
                                 <img class="img-profile rounded-circle" src="static/images/undraw_profile.svg">
                             </a>
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Profile
-                                </a>
+                                <h6 class="dropdown-header text-center">
+                                    {{ session['username'] }}
+                                </h6>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="/">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
@@ -82,38 +102,264 @@
                         </li>
                     </ul>
                 </nav>
-                <div class="card shadow mb-1 ml-1 ">
+                <div class="card shadow">
                     <div class="card-header py-3">
-                        
+                        <div class="row">
+                            <!-- Original form with filter and button -->
+                            <div class="col-md-5">
+                                <form id="lpa-form" class="form-row">
+                                    <div class="form-group col-md-8 col-sm-8 col-8">
+                                        <small class="form-text text-muted">Linha de Produção</small>
+                                        <select name="filter_prod_line" id="filter_prod_line" class="form-control">
+                                            <option value="">Selecione a linha</option>
+                                            {% for line in linhas %}
+                                            <option value="{{ line }}">{{ line }}</option>
+                                            {% endfor %}
+                                        </select>                                
+                                    </div>
+                                    <div class="form-group col-md-4 col-sm-4 col-4 d-flex align-items-end">
+                                        <button type="button" class="btn btn-primary" onclick="realizarLPA()">Realizar LPA</button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Legend box - right side of page -->
+                            <div class="col-md-7 d-flex justify-content-end">
+                                <div class="card bg-light" style="max-width: 380px;">
+                                    <div class="card-body py-2 px-3">
+                                        <h6 class="font-weight-bold mb-2">PONTUAÇÃO VERIFICAÇÕES:</h6>
+                                        <div class="text-left">
+                                            <div><span class="text-success font-weight-bold">✓</span>: OK</div>
+                                            <div><span class="text-danger font-weight-bold">X</span>: NOK (necessária ação)</div>
+                                            <div>NC: NOK (corrigido durante a auditoria)</div>
+                                            <div>NT: Não Trabalhou</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        
+                    <div class="card-body hidden" id="lpa-result">
+                        <h5 id="lpa-title" class="font-weight-bold"></h5>
                     </div>
+                    <div id="lpa-section" class="hidden">
+                        <div class="card shadow">
+                            <div class="card-header">
+                                <h5>Realizar LPA : <span id="selected-line"></span></h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="lpa-form-details">
+                                    <div class="form-group">
+                                        <label><strong>Data e Hora Atual</strong></label>
+                                        <input type="text" class="form-control" id="dataAtual" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><strong>Turno</strong></label>
+                                        <select class="form-control" id="turno">
+                                            <option value="">Selecione o turno</option>
+                                            <option value="Manhã">A</option>
+                                            <option value="Tarde">B</option>
+                                            <option value="Noite">C</option>
+                                            <option value="Intermédio">D</option>
+                                            <option value="FDS-Manhã">E</option>
+                                            <option value="FDS-Noite">F</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><strong>Número de Colaborador</strong></label>
+                                        <input type="text" class="form-control" id="Nr_colaborador" readonly>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label><strong>Registe os 4 últimos números da peça em execução no momento da auditoria</strong></label>
+                                        <input type="number" class="form-control" id="numeroPeca" placeholder="Ex. 2104, 1840, 5898, etc" maxlength="4" min="0" max="9999">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label><strong>Nome do Auditor</strong></label>
+                                        <input type="text" class="form-control" id="username" readonly>
+                                    </div>                               
+                                    
+                                    <div id="lpa-items"></div>
+                                    <button type="button" class="btn btn-primary mt-3" onclick="salvarLPA()">Guardar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>                    
                 </div>
-                
-            </div>
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; Digital Transformation Viana 2024</span>
-                    </div>
-                </div>
-            </footer>
-        </div>
-    </div>
-    <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
-    </a>
-    <script src="static/scripts/js/scripts.js"></script>
+
     <script src="static/vendor/jquery/jquery.min.js"></script>
     <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <!-- Core plugin JavaScript-->
-    <script src="static/vendor/jquery-easing/jquery.easing.min.js"></script>
-    <!-- Custom scripts for all pages-->
-    <script src="static/js/sb-admin-2.min.js"></script>
 
-
+    <script>
+        function realizarLPA() {
+            var selectedLine = document.getElementById("filter_prod_line").value;
+            if (!selectedLine) {
+                alert("Selecione uma linha de produção primeiro.");
+                return;
+            }
+        
+            fetch("/get_user_data")
+            .then(response => response.json())
+            .then(user => {
+                document.getElementById("Nr_colaborador").value = user.Nr_colaborador || "";
+                document.getElementById("username").value = user.username || "";
+        
+        
+                    document.getElementById("selected-line").innerText = selectedLine;
+                    document.getElementById("dataAtual").value = formatarDataAtual();
+                    document.getElementById("lpa-section").classList.remove("hidden");
+        
+                    fetch("/get_data", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ production_line: selectedLine })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        var lpaItemsContainer = document.getElementById("lpa-items");
+                        lpaItemsContainer.innerHTML = "";
+                        if (!data.length) {
+                            alert("Nenhuma pergunta encontrada para esta linha de produção.");
+                            return;
+                        }
+        
+                        data.forEach((item, index) => {
+                            lpaItemsContainer.innerHTML += `
+                                <div class="form-group">
+                                    <label><strong>${index + 1} - ${item.pergunta}</strong></label>
+                                    <div class="radio-group">
+                                        <div class="custom-control custom-radio custom-control-inline">
+                                            <input type="radio" id="ok${index}" name="item${index}" value="OK" 
+                                                class="custom-control-input" onchange="toggleNokFields(${index})">
+                                            <label class="custom-control-label" for="ok${index}">OK</label>
+                                        </div>
+                                        <div class="custom-control custom-radio custom-control-inline">
+                                            <input type="radio" id="nok${index}" name="item${index}" value="NOK" 
+                                                class="custom-control-input" onchange="toggleNokFields(${index})">
+                                            <label class="custom-control-label" for="nok${index}">NOK</label>
+                                        </div>
+                                        <div class="custom-control custom-radio custom-control-inline">
+                                            <input type="radio" id="nc${index}" name="item${index}" value="NC" 
+                                                class="custom-control-input" onchange="toggleNokFields(${index})">
+                                            <label class="custom-control-label" for="nc${index}">NC</label>
+                                        </div>
+                                        <div class="custom-control custom-radio custom-control-inline">
+                                            <input type="radio" id="nt${index}" name="item${index}" value="NT" 
+                                                class="custom-control-input" onchange="toggleNokFields(${index})">
+                                            <label class="custom-control-label" for="nt${index}">NT</label>
+                                        </div>
+                                    </div>
+                                    <div id="nokFields${index}" class="nok-description">
+                                        <input type="text" class="form-control mt-2" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
+                                        <input type="text" class="form-control mt-2" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
+                                        <input type="date" class="form-control mt-2" id="prazo${index}">
+                                    </div>
+                                </div>
+                            `;
+                        });                        
+                    });
+                })
+                .catch(error => {
+                    console.error("Erro ao buscar dados do usuário:", error);
+                    alert("Erro ao carregar os dados do usuário.");
+                });
+        }
+        
+        // Update the toggleNokFields function to handle NC and NT options
+        function toggleNokFields(index) {
+            const nokFields = document.getElementById(`nokFields${index}`);
+            const nokRadio = document.getElementById(`nok${index}`);
+            const ncRadio = document.getElementById(`nc${index}`);
+            
+            // Only show additional fields for NOK (but not for NC since it's already corrected)
+            if (nokRadio.checked) {
+                nokFields.style.display = 'block';
+            } else {
+                nokFields.style.display = 'none';
+            }
+        }    
+    
+        function formatarDataAtual() {
+            const dataAtual = new Date();
+            const dia = String(dataAtual.getDate()).padStart(2, '0');
+            const mes = String(dataAtual.getMonth() + 1).padStart(2, '0');
+            const ano = dataAtual.getFullYear();
+            const horas = String(dataAtual.getHours()).padStart(2, '0');
+            const minutos = String(dataAtual.getMinutes()).padStart(2, '0');
+            
+            return `${dia}/${mes}/${ano} - ${horas}:${minutos}`;
+        }
+        
+    
+        function salvarLPA() {
+            var selectedLine = document.getElementById("filter_prod_line").value;
+            var dataAuditoria = formatarDataAtual();
+            var respostas = [];
+        
+            document.querySelectorAll("#lpa-items .form-group").forEach((item, index) => {
+                var pergunta = item.querySelector("label").innerText.split(" - ")[1];
+                var resposta = document.querySelector(`input[name="item${index}"]:checked`);
+                
+                if (resposta) {
+                    var respostaObj = {
+                        pergunta: pergunta,
+                        resposta: resposta.value
+                    };
+        
+                    if (resposta.value === "NOK") {
+                        respostaObj.nao_conformidade = document.getElementById(`naoConformidade${index}`).value;
+                        respostaObj.acao_corretiva = document.getElementById(`acaoCorretiva${index}`).value;
+                        
+                        var prazoInput = document.getElementById(`prazo${index}`);
+                        if (prazoInput && prazoInput.value) {
+                            respostaObj.prazo = formatarDataPrazo(prazoInput.value);
+                        }
+                    }
+        
+                    respostas.push(respostaObj);
+                }
+            });
+        
+            fetch("/save_lpa", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    linha: selectedLine,
+                    data_auditoria: dataAuditoria,
+                    respostas: respostas
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("LPA salvo com sucesso!");
+                    location.reload();  // Atualiza a página após salvar
+                } else {
+                    alert("Erro ao salvar LPA: " + data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Erro ao salvar LPA:", error);
+                alert("Erro ao salvar. Tente novamente.");
+            });
+        }
+        
+        // Função para formatar o prazo no formato DD/MM/YYYY - HH:MM
+        function formatarDataPrazo(data) {
+            var date = new Date(data); // Recebe no formato YYYY-MM-DD
+            var dia = String(date.getDate()).padStart(2, '0');
+            var mes = String(date.getMonth() + 1).padStart(2, '0');
+            var ano = date.getFullYear();
+            var horas = String(date.getHours()).padStart(2, '0');
+            var minutos = String(date.getMinutes()).padStart(2, '0');
+            
+            return `${dia}/${mes}/${ano} - ${horas}:${minutos}`;
+        }
+        
+        
     </script>
 </body>
-
 </html>
