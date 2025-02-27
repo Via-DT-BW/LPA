@@ -12,28 +12,24 @@ app.secret_key = 'secretkeysparepartscroston'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 settings_path = os.path.join(BASE_DIR, "connections", "settings.json")
 
-# Carregar configurações de conexão do banco de dados
 with open(settings_path, "r") as f:
     settings = json.load(f)
 connection_string = settings[0]["connection_string_db_teste_jose"]
 
 def get_db_connection():
-    """Retorna a conexão com o banco de dados"""
     return pyodbc.connect(connection_string)
 
 @app.route('/')
 def index():
-    """Página de login"""
     return render_template('index.html')
 
 @app.route('/login', methods=["POST"])
 def login():
-    """Autenticação do usuário"""
     username = request.form['username']
     password = request.form['password']
 
     if not username or not password:
-        flash('Por favor, insira o nome de usuário e a senha', 'error')
+        flash('Por favor, insira o nome de utilizador e a palavra-passe', 'error')
         return redirect(url_for('index'))
 
     try:
@@ -49,8 +45,8 @@ def login():
         conn.close()
 
         if user:
-            session['user_id'] = user[0]  # Supondo que o id esteja na primeira coluna
-            session['username'] = user[1]  # Supondo que o username esteja na segunda coluna
+            session['user_id'] = user[0] 
+            session['username'] = user[1] 
             return redirect(url_for('home'))
         else:
             flash('Credenciais inválidas. Tente novamente.', 'error')
@@ -61,9 +57,8 @@ def login():
 
 @app.route('/home')
 def home():
-    """Página principal após login"""
     if 'user_id' not in session:
-        return redirect(url_for('index'))  # Redireciona para login se não estiver logado
+        return redirect(url_for('index'))  
     
     try:
         conn = get_db_connection()
@@ -79,7 +74,6 @@ def home():
 
 @app.route("/get_data", methods=["POST"])
 def get_data():
-    """Carregar as perguntas para a linha de produção selecionada"""
     data = request.json
     production_line = data.get("production_line") 
 
@@ -116,7 +110,7 @@ def get_data():
 @app.route("/get_user_data")
 def get_user_data():
     if "user_id" not in session:
-        return jsonify({"error": "Usuário não está logado"}), 401
+        return jsonify({"error": "Utilizador não tem login"}), 401
 
     try:
         conn = get_db_connection()
@@ -131,7 +125,7 @@ def get_user_data():
         conn.close()
 
         if not user:
-            return jsonify({"error": "Usuário não encontrado"}), 404
+            return jsonify({"error": "Utilizador não encontrado"}), 404
 
         return jsonify({
             "Nr_colaborador": user[0],
@@ -139,30 +133,27 @@ def get_user_data():
         })
 
     except Exception as e:
-        return jsonify({"error": f"Erro ao carregar dados do usuário: {str(e)}"}), 500
+        return jsonify({"error": f"Erro ao carregar dados do utilizador: {str(e)}"}), 500
     
 @app.route("/save_lpa", methods=["POST"])
 def save_lpa():
     if "user_id" not in session:
-        return jsonify({"error": "Usuário não autenticado"}), 401
+        return jsonify({"error": "Utilizador não autenticado"}), 401
 
     data = request.json
     linha = data.get("linha")
-    respostas = data.get("respostas")  # Lista de respostas {pergunta, resposta}
-
+    respostas = data.get("respostas")  
     if not linha or not respostas:
         return jsonify({"error": "Dados incompletos"}), 400
 
-    user_id = session["user_id"]  # ID do usuário logado
-    data_auditoria = data.get("data_auditoria")  # Data da auditoria formatada
+    user_id = session["user_id"]  
+    data_auditoria = data.get("data_auditoria")  
 
-    # Garantir que a data seja no formato correto para SQL Server
     try:
         data_auditoria = datetime.strptime(data_auditoria, "%d/%m/%Y - %H:%M")
     except ValueError:
         return jsonify({"error": "Formato de data inválido. Use o formato DD/MM/YYYY - HH:MM"}), 400
 
-    # Converter para o formato aceito pelo SQL Server
     data_auditoria = data_auditoria.strftime("%Y-%m-%d %H:%M:%S")
 
     try:
@@ -173,7 +164,6 @@ def save_lpa():
             pergunta = item["pergunta"]
             resposta = item["resposta"]
 
-            # Buscar linha_pergunta_id correspondente
             query = """
                 SELECT lp.id
                 FROM linha_pergunta lp
@@ -187,7 +177,6 @@ def save_lpa():
             if linha_pergunta:
                 linha_pergunta_id = linha_pergunta[0]
 
-                # Inserir na tabela dbo.LPA
                 insert_query = """
                     INSERT INTO dbo.LPA (id_pessoa, linha_pergunta_id, resposta, data_auditoria)
                     VALUES (?, ?, ?, ?)
