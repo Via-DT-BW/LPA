@@ -107,21 +107,17 @@
                         <div class="row">
                             <div class="col-md-5">
                                 <form id="lpa-form" class="form-row">
-                                    <div class="form-group col-md-8 col-sm-8 col-8">
+                                    <div class="form-group col-md-12 col-sm-12 col-12">
                                         <small class="form-text text-muted">Linha de Produção</small>
-                                        <select name="filter_prod_line" id="filter_prod_line" class="form-control">
+                                        <select name="filter_prod_line" id="filter_prod_line" class="form-control" onchange="realizarLPA()">
                                             <option value="">Selecione a linha</option>
                                             {% for line in linhas %}
                                             <option value="{{ line }}">{{ line }}</option>
                                             {% endfor %}
                                         </select>                                
                                     </div>
-                                    <div class="form-group col-md-4 col-sm-4 col-4 d-flex align-items-end">
-                                        <button type="button" class="btn btn-primary" onclick="realizarLPA()">Realizar LPA</button>
-                                    </div>
                                 </form>
                             </div>
-                            
                             <div class="col-md-7 d-flex justify-content-end">
                                 <div class="card bg-light" style="max-width: 380px;">
                                     <div class="card-body py-2 px-3">
@@ -170,7 +166,7 @@
                                     
                                     <div class="form-group">
                                         <label><strong>Registe os 4 últimos números da peça em execução no momento da auditoria</strong></label>
-                                        <input type="number" class="form-control" id="numeroPeca" placeholder="Ex. 2104, 1840, 5898, etc" maxlength="4" min="0" max="9999">
+                                        <input type="text" class="form-control" id="numeroPeca" placeholder="Ex. 2104, 1840, 5898, etc" maxlength="4" min="0" max="9999">
                                     </div>
                                     
                                     <div class="form-group">
@@ -185,10 +181,16 @@
                         </div>
                     </div>                    
                 </div>
+                <footer class="sticky-footer bg-white">
+                    <div class="container my-auto">
+                        <div class="copyright text-center my-auto">
+                            <span>Copyright &copy; Digital Transformation Viana 2024</span>
+                        </div>
+                    </div>
+                </footer>
 
     <script src="static/vendor/jquery/jquery.min.js"></script>
     <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-
     <script>
         function realizarLPA() {
             var selectedLine = document.getElementById("filter_prod_line").value;
@@ -203,67 +205,66 @@
                 document.getElementById("Nr_colaborador").value = user.Nr_colaborador || "";
                 document.getElementById("username").value = user.username || "";
         
+                document.getElementById("selected-line").innerText = selectedLine;
+                document.getElementById("dataAtual").value = formatarDataAtual();
+                document.getElementById("lpa-section").classList.remove("hidden");
         
-                    document.getElementById("selected-line").innerText = selectedLine;
-                    document.getElementById("dataAtual").value = formatarDataAtual();
-                    document.getElementById("lpa-section").classList.remove("hidden");
+                fetch("/get_data", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ production_line: selectedLine })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    var lpaItemsContainer = document.getElementById("lpa-items");
+                    lpaItemsContainer.innerHTML = "";
+                    if (!data.length) {
+                        alert("Nenhuma pergunta encontrada para esta linha de produção.");
+                        return;
+                    }
         
-                    fetch("/get_data", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ production_line: selectedLine })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        var lpaItemsContainer = document.getElementById("lpa-items");
-                        lpaItemsContainer.innerHTML = "";
-                        if (!data.length) {
-                            alert("Nenhuma pergunta encontrada para esta linha de produção.");
-                            return;
-                        }
-        
-                        data.forEach((item, index) => {
-                            lpaItemsContainer.innerHTML += `
-                                <div class="form-group">
-                                    <label><strong>${index + 1} - ${item.pergunta}</strong></label>
-                                    <div class="radio-group">
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="ok${index}" name="item${index}" value="OK" 
-                                                class="custom-control-input" onchange="toggleNokFields(${index})">
-                                            <label class="custom-control-label" for="ok${index}">OK</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="nok${index}" name="item${index}" value="NOK" 
-                                                class="custom-control-input" onchange="toggleNokFields(${index})">
-                                            <label class="custom-control-label" for="nok${index}">NOK</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="nc${index}" name="item${index}" value="NC" 
-                                                class="custom-control-input" onchange="toggleNokFields(${index})">
-                                            <label class="custom-control-label" for="nc${index}">NC</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="nt${index}" name="item${index}" value="NT" 
-                                                class="custom-control-input" onchange="toggleNokFields(${index})">
-                                            <label class="custom-control-label" for="nt${index}">NT</label>
-                                        </div>
+                    data.forEach((item, index) => {
+                        lpaItemsContainer.innerHTML += `
+                            <div class="form-group">
+                                <label><strong>${index + 1} - ${item.pergunta}</strong></label>
+                                <div class="radio-group">
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input type="radio" id="ok${index}" name="item${index}" value="OK" 
+                                            class="custom-control-input" onchange="toggleNokFields(${index})">
+                                        <label class="custom-control-label" for="ok${index}">OK</label>
                                     </div>
-                                    <div id="nokFields${index}" class="nok-description">
-                                        <input type="text" class="form-control mt-2" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
-                                        <input type="text" class="form-control mt-2" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
-                                        <input type="date" class="form-control mt-2" id="prazo${index}">
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input type="radio" id="nok${index}" name="item${index}" value="NOK" 
+                                            class="custom-control-input" onchange="toggleNokFields(${index})">
+                                        <label class="custom-control-label" for="nok${index}">NOK</label>
+                                    </div>
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input type="radio" id="nc${index}" name="item${index}" value="NC" 
+                                            class="custom-control-input" onchange="toggleNokFields(${index})">
+                                        <label class="custom-control-label" for="nc${index}">NC</label>
+                                    </div>
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input type="radio" id="nt${index}" name="item${index}" value="NT" 
+                                            class="custom-control-input" onchange="toggleNokFields(${index})">
+                                        <label class="custom-control-label" for="nt${index}">NT</label>
                                     </div>
                                 </div>
-                            `;
-                        });                        
-                    });
-                })
-                .catch(error => {
-                    console.error("Erro ao buscar dados do usuário:", error);
-                    alert("Erro ao carregar os dados do usuário.");
+                                <div id="nokFields${index}" class="nok-description">
+                                    <input type="text" class="form-control mt-2" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
+                                    <input type="text" class="form-control mt-2" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
+                                    <input type="date" class="form-control mt-2" id="prazo${index}">
+                                </div>
+                            </div>
+                        `;
+                    });                        
                 });
+            })
+            .catch(error => {
+                console.error("Erro ao buscar dados do usuário:", error);
+                alert("Erro ao carregar os dados do usuário.");
+            });
         }
-        
+    
         function toggleNokFields(index) {
             const nokFields = document.getElementById(`nokFields${index}`);
             const nokRadio = document.getElementById(`nok${index}`);
@@ -286,11 +287,12 @@
             
             return `${dia}/${mes}/${ano} - ${horas}:${minutos}`;
         }
-        
     
         function salvarLPA() {
             var selectedLine = document.getElementById("filter_prod_line").value;
             var dataAuditoria = formatarDataAtual();
+            var turno = document.getElementById("turno").value;
+            var registoPeca = document.getElementById("numeroPeca").value;
             var respostas = [];
         
             document.querySelectorAll("#lpa-items .form-group").forEach((item, index) => {
@@ -325,6 +327,8 @@
                 body: JSON.stringify({
                     linha: selectedLine,
                     data_auditoria: dataAuditoria,
+                    turno: turno,
+                    registo_peca: registoPeca,
                     respostas: respostas
                 })
             })
@@ -332,7 +336,7 @@
             .then(data => {
                 if (data.success) {
                     alert("LPA salvo com sucesso!");
-                    location.reload(); 
+                    location.reload();  // Atualiza a página após salvar
                 } else {
                     alert("Erro ao salvar LPA: " + data.error);
                 }
@@ -342,18 +346,15 @@
                 alert("Erro ao salvar. Tente novamente.");
             });
         }
-        
+    
         function formatarDataPrazo(data) {
             var date = new Date(data); 
-            var dia = String(date.getDate()).padStart(2, '0');
-            var mes = String(date.getMonth() + 1).padStart(2, '0');
             var ano = date.getFullYear();
-            var horas = String(date.getHours()).padStart(2, '0');
-            var minutos = String(date.getMinutes()).padStart(2, '0');
+            var mes = String(date.getMonth() + 1).padStart(2, '0');
+            var dia = String(date.getDate()).padStart(2, '0');
             
-            return `${dia}/${mes}/${ano} - ${horas}:${minutos}`;
+            return `${ano}-${mes}-${dia}`;
         }
-        
         
     </script>
 </body>
