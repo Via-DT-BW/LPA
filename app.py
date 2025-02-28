@@ -77,6 +77,25 @@ def home():
         flash(f'Erro ao carregar linhas: {str(e)}', 'error')
         return redirect(url_for('index'))
 
+@app.route('/ver_lpa')
+def ver_lpa():
+    """Página de consulta de LPAs"""
+    if 'user_id' not in session:
+        return redirect(url_for('index'))  # Redireciona para login se não estiver logado
+
+    try:
+        conn = get_db_connection()
+        query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
+        df = pd.read_sql(query, conn)
+        conn.close()
+
+        linhas = df['linha'].tolist()
+        return render_template('ver_lpa.html', linhas=linhas)
+    except Exception as e:
+        flash(f'Erro ao carregar linhas: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+
 @app.route("/get_data", methods=["POST"])
 def get_data():
     """Carregar as perguntas para a linha de produção selecionada"""
@@ -240,3 +259,5 @@ def save_lpa():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    
+    
