@@ -4,12 +4,11 @@ function salvarLPA() {
     var turno = document.getElementById("turno").value;
     var registoPeca = document.getElementById("numeroPeca").value;
     var respostas = [];
-    var valido = true;  
 
     document.querySelectorAll("#lpa-items .form-group").forEach((item, index) => {
-        var pergunta = item.querySelector("label").innerText;
+        var pergunta = item.querySelector("label").innerText.split(" - ")[1];
         var resposta = document.querySelector(`input[name="item${index}"]:checked`);
-        
+
         if (resposta) {
             var respostaObj = {
                 pergunta: pergunta,
@@ -17,18 +16,9 @@ function salvarLPA() {
             };
 
             if (resposta.value === "NOK") {
-                var naoConformidade = document.getElementById(`naoConformidade${index}`).value;
-                var acaoCorretiva = document.getElementById(`acaoCorretiva${index}`).value;
+                respostaObj.nao_conformidade = document.getElementById(`naoConformidade${index}`).value;
+                respostaObj.acao_corretiva = document.getElementById(`acaoCorretiva${index}`).value;
 
-                if (!naoConformidade.trim() || !acaoCorretiva.trim()) {
-                    valido = false;
-                    alert(`Por favor, preencha todos os campos de descrição e ação corretiva para a pergunta: ${pergunta}`);
-                    return; 
-                }
-
-                respostaObj.nao_conformidade = naoConformidade;
-                respostaObj.acao_corretiva = acaoCorretiva;
-                
                 var prazoInput = document.getElementById(`prazo${index}`);
                 if (prazoInput && prazoInput.value) {
                     respostaObj.prazo = formatarDataPrazo(prazoInput.value);
@@ -39,9 +29,7 @@ function salvarLPA() {
         }
     });
 
-    if (!valido) {
-        return;  
-    }
+    console.log("Respostas capturadas:", respostas.length); 
 
     fetch("/save_lpa", {
         method: "POST",

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% include 'components/head.html' %}
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+        
+{% block content %}
+<body id="page-top">
+    <div id="content">
+        {% include 'components/navbar.html' %}
+        <div class="container-fluid">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="font-weight-bold text-primary mb-0">CONSULTAR LPAs REALIZADOS</h6>
+                    <form id="filter-form" class="form-row mt-3">
+                        <div class="form-group col-md-4">
+                            <small class="form-text text-muted mb-2">Escolha a linha de produção</small>
+                            <select name="filter_prod_line" id="filter_prod_line" class="form-control">
+                                <option value="">Selecione a linha</option>
+                                {% for line in linhas %}
+                                <option value="{{ line }}">{{ line }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <small class="form-text text-muted mb-2">Selecione a data</small>
+                            <input type="date" class="form-control" id="filter_date">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <button type="button" class="btn btn-primary mt-4" id="apply-filters">Aplicar Filtros</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card-body">
+                    <div id="lpa-list" class="row">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% include 'components/footer.html' %}
+    </div>
+
+    <div class="modal fade" id="lpaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Detalhes do LPA</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="incidenciaModal" tabindex="-1" aria-labelledby="incidenciaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="incidenciaModalLabel">Detalhes da Incidência</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="incidenciaModalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            var linha = document.getElementById('filter_prod_line').value;
+            var data = document.getElementById('filter_date').value;
+
+            fetch("/get_lpa_data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "linha": linha, "data": data })
+            })
+            .then(response => response.json())
+            .then(data => {
+                var lpaList = document.getElementById('lpa-list');
+                lpaList.innerHTML = '';
+
+                if (data.length === 0) {
+                    lpaList.innerHTML = '<p class="text-muted">Nenhum LPA encontrado.</p>';
+                } else {
+                    let groupedLPAs = {};
+
+                    data.forEach(lpa => {
+                        let key = `${lpa.linha} - Turno ${lpa.turno} - ${lpa.data_auditoria}`;
+                        if (!groupedLPAs[key]) {
+                            groupedLPAs[key] = {
+                                linha: lpa.linha,
+                                data_auditoria: lpa.data_auditoria,
+                                turno: lpa.turno,
+                                auditor: lpa.auditor
+                            };
+                        }
+                    });
+
+                    Object.keys(groupedLPAs).forEach(key => {
+                        var item = `<div class="col-md-4 mb-3">
+                            <div class="card p-3">
+                                <strong>${key}</strong>
+                                <button class="btn btn-primary btn-sm btn-ver float-right" data-toggle="modal" data-target="#lpaModal"
+                                    onclick="verDetalhes('${groupedLPAs[key].linha}', '${groupedLPAs[key].data_auditoria}', '${groupedLPAs[key].turno}')">
+                                    <i class="fas fa-eye"></i> Ver
+                                </button>
+                            </div>
+                        </div>`;
+                        lpaList.insertAdjacentHTML('beforeend', item);
+                    });
+                }
+            })
+            .catch(error => console.error('Erro ao carregar LPAs:', error));
+        });
+
+        {% include "js/verLPA.js" %}
+    </script>
+
+{% endblock %}
+</body>
+</html>

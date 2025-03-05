@@ -12,7 +12,7 @@
             </a>
             <hr class="sidebar-divider my-0">
             
-            <li class="nav-item active route">
+            <li class="nav-item">
                 <a class="nav-link" href="/">
                     <i class="fas fa-arrow-left mr-2"></i>
                     <span>Voltar</span>
@@ -21,19 +21,20 @@
         
             <hr class="sidebar-divider">
         
-            <li class="nav-item">
+            <li class="nav-item {% if request.path == '/home' %}active{% endif %}">
                 <a class="nav-link" href="/home">
                     <i class="fas fa-check-circle mr-2"></i>
                     <span>Realizar LPA</span>
                 </a>
             </li>
-        
-            <li class="nav-item">
-                <a class="nav-link" href="/ver_lpa">
+            
+            <li class="nav-item {% if request.path == '/lpa_check' %}active{% endif %}">
+                <a class="nav-link" href="/lpa_check">
                     <i class="fas fa-search mr-2"></i>
                     <span>Consultar LPA</span>
                 </a>
             </li>
+            
         
             <hr class="sidebar-divider d-none d-md-block">
             

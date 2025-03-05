@@ -12,23 +12,19 @@ app.secret_key = 'secretkeysparepartscroston'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 settings_path = os.path.join(BASE_DIR, "connections", "settings.json")
 
-# Carregar configurações de conexão do banco de dados
 with open(settings_path, "r") as f:
     settings = json.load(f)
 connection_string = settings[0]["connection_string_db_teste_jose"]
 
 def get_db_connection():
-    """Retorna a conexão com o banco de dados"""
     return pyodbc.connect(connection_string)
 
 @app.route('/')
 def index():
-    """Página de login"""
     return render_template('index.html')
 
 @app.route('/login', methods=["POST"])
 def login():
-    """Autenticação do usuário"""
     username = request.form['username']
     password = request.form['password']
 
@@ -49,9 +45,8 @@ def login():
         conn.close()
 
         if user:
-            session['user_id'] = user[0]  # Supondo que o id esteja na primeira coluna
-            session['username'] = user[1]  # Supondo que o username esteja na segunda coluna
-            return redirect(url_for('home'))
+            session['user_id'] = user[0]  
+            session['username'] = user[1]  
         else:
             flash('Credenciais inválidas. Tente novamente.', 'error')
             return redirect(url_for('index'))
@@ -61,9 +56,8 @@ def login():
 
 @app.route('/home')
 def home():
-    """Página principal após login"""
     if 'user_id' not in session:
-        return redirect(url_for('index'))  # Redireciona para login se não estiver logado
+        return redirect(url_for('index')) 
     
     try:
         conn = get_db_connection()
@@ -77,28 +71,8 @@ def home():
         flash(f'Erro ao carregar linhas: {str(e)}', 'error')
         return redirect(url_for('index'))
 
-@app.route('/ver_lpa')
-def ver_lpa():
-    """Página de consulta de LPAs"""
-    if 'user_id' not in session:
-        return redirect(url_for('index'))  # Redireciona para login se não estiver logado
-
-    try:
-        conn = get_db_connection()
-        query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
-        df = pd.read_sql(query, conn)
-        conn.close()
-
-        linhas = df['linha'].tolist()
-        return render_template('ver_lpa.html', linhas=linhas)
-    except Exception as e:
-        flash(f'Erro ao carregar linhas: {str(e)}', 'error')
-        return redirect(url_for('index'))
-
-
 @app.route("/get_data", methods=["POST"])
 def get_data():
-    """Carregar as perguntas para a linha de produção selecionada"""
     data = request.json
     production_line = data.get("production_line") 
 
@@ -163,7 +137,7 @@ def get_user_data():
 @app.route("/save_lpa", methods=["POST"])
 def save_lpa():
     if "user_id" not in session:
-        return jsonify({"error": "Usuário não autenticado"}), 401
+        return jsonify({"error": "Utilizador não autenticado"}), 401
 
     data = request.json
     linha = data.get("linha")
@@ -188,8 +162,6 @@ def save_lpa():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        lpa_ids = []  
-
         for item in respostas:
             pergunta = item["pergunta"]
             resposta = item["resposta"]
@@ -209,33 +181,13 @@ def save_lpa():
 
                 insert_query = """
                     INSERT INTO dbo.LPA (id_pessoa, linha_pergunta_id, resposta, data_auditoria, turno, registo_peca)
+                    OUTPUT INSERTED.id
                     VALUES (?, ?, ?, ?, ?, ?)
                 """
                 cursor.execute(insert_query, (user_id, linha_pergunta_id, resposta, data_auditoria, turno, registo_peca))
+                lpa_id = cursor.fetchone()[0]  
 
-        conn.commit()
-
-        for item in respostas:
-            if item["resposta"] == "NOK":
-                pergunta = item["pergunta"]
-
-                get_lpa_id_query = """
-                    SELECT id FROM dbo.LPA 
-                    WHERE id_pessoa = ? AND linha_pergunta_id = (
-                        SELECT lp.id
-                        FROM linha_pergunta lp
-                        JOIN perguntas p ON lp.pergunta_id = p.id
-                        JOIN linhas l ON lp.linha_id = l.id
-                        WHERE l.linha = ? AND p.pergunta = ?
-                    )
-                    AND data_auditoria = ? AND turno = ? AND registo_peca = ?
-                """
-                cursor.execute(get_lpa_id_query, (user_id, linha, pergunta, data_auditoria, turno, registo_peca))
-                lpa_id = cursor.fetchone()
-
-                if lpa_id:
-                    lpa_id = lpa_id[0]  
-
+                if resposta == "NOK":
                     nao_conformidade = item.get("nao_conformidade")
                     acao_corretiva = item.get("acao_corretiva")
                     prazo = item.get("prazo")
@@ -257,7 +209,112 @@ def save_lpa():
     except Exception as e:
         return jsonify({"error": f"Erro ao salvar LPA: {str(e)}"}), 500
 
+@app.route('/lpa_check')
+def lpa_check():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))  
+
+    try:
+        conn = get_db_connection()
+        query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
+        df = pd.read_sql(query, conn)
+        conn.close()
+
+        linhas = df['linha'].tolist()
+        return render_template('lpa_check.html', linhas=linhas)
+    except Exception as e:
+        flash(f'Erro ao carregar linhas: {str(e)}', 'error')
+        return redirect(url_for('index'))
+    
+@app.route("/get_lpa_data", methods=["POST"])
+def get_lpa_data():
+    data = request.json
+    linha = data.get("linha")
+
+    if not linha:
+        return jsonify({"error": "Nenhuma linha de produção selecionada."}), 400
+
+    try:
+        conn = get_db_connection()
+        query = """
+            SELECT lpa.id, l.linha, lpa.data_auditoria, lpa.turno, p.username AS auditor, 
+                   lpa.resposta, lp.id AS linha_pergunta_id, pq.pergunta
+            FROM dbo.LPA lpa
+            JOIN dbo.linha_pergunta lp ON lpa.linha_pergunta_id = lp.id
+            JOIN dbo.linhas l ON lp.linha_id = l.id
+            JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
+            JOIN dbo.pessoas p ON lpa.id_pessoa = p.id
+            WHERE l.linha = ?
+        """
+        cursor = conn.cursor()
+        cursor.execute(query, (linha,))
+        lpas = cursor.fetchall()
+        conn.close()
+
+        lpa_list = []
+        for lpa in lpas:
+            lpa_list.append({
+                "id": lpa[0],
+                "linha": lpa[1],
+                "data_auditoria": lpa[2].strftime("%Y-%m-%d"),  
+                "turno": lpa[3],
+                "auditor": lpa[4],
+                "resposta": lpa[5],
+                "linha_pergunta_id": lpa[6],
+                "pergunta": lpa[7],
+            })
+
+        return jsonify(lpa_list)
+
+    except Exception as e:
+        return jsonify({"error": f"Erro ao buscar LPAs: {str(e)}"}), 500
+    
+@app.route("/get_lpa_details", methods=["POST"])
+def get_lpa_details():
+    data = request.json
+    linha = data.get("linha")
+    data_auditoria = data.get("data_auditoria") 
+    turno = data.get("turno")
+
+    if not linha or not data_auditoria or not turno:
+        return jsonify({"error": "Dados insuficientes para buscar o LPA."}), 400
+
+    try:
+        data_auditoria = datetime.fromisoformat(data_auditoria.split("T")[0])
+
+        conn = get_db_connection()
+        query = """
+        SELECT pq.pergunta, lpa.resposta, i.nao_conformidade, i.acao_corretiva, i.prazo
+        FROM dbo.LPA lpa
+        JOIN dbo.linha_pergunta lp ON lpa.linha_pergunta_id = lp.id
+        JOIN dbo.linhas l ON lp.linha_id = l.id
+        JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
+        LEFT JOIN dbo.Incidencias i ON lpa.id = i.id_LPA
+        WHERE l.linha = ? 
+        AND CONVERT(DATE, lpa.data_auditoria) = CONVERT(DATE, ?) 
+        AND lpa.turno = ?
+        """
+
+        cursor = conn.cursor()
+        cursor.execute(query, (linha, data_auditoria, turno))
+        lpas = cursor.fetchall()
+        conn.close()
+
+        perguntas = []
+        for lpa in lpas:
+            pergunta = {
+                "pergunta": lpa[0],
+                "resposta": lpa[1],
+                "incidencias": lpa[2] if lpa[1] == 'NOK' else '',
+                "acoes_corretivas": lpa[3] if lpa[1] == 'NOK' else '',
+                "prazo": lpa[4] if lpa[1] == 'NOK' else ''
+            }
+            perguntas.append(pergunta)
+
+        return jsonify(perguntas)
+
+    except Exception as e:
+        return jsonify({"error": f"Erro ao buscar detalhes do LPA: {str(e)}"}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
-    
-    

@@ -31,12 +31,9 @@ function realizarLPA() {
 
             data.forEach((item, index) => {
                 lpaItemsContainer.innerHTML += `
-                    <div class="form-group mb-4 pb-3 border-bottom">
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="badge badge-secondary mr-2">${index + 1}</span>
-                            <label class="mb-0"><strong>${item.pergunta}</strong></label>
-                        </div>
-                        <div class="radio-group mt-3">
+                    <div class="form-group">
+                        <label>${index + 1} - ${item.pergunta}</label>
+                        <div class="radio-group">
                             <div class="custom-control custom-radio custom-control-inline">
                                 <input type="radio" id="ok${index}" name="item${index}" value="OK" 
                                     class="custom-control-input" onchange="toggleNokFields(${index})">
@@ -58,19 +55,10 @@ function realizarLPA() {
                                 <label class="custom-control-label" for="nt${index}">NT</label>
                             </div>
                         </div>
-                        <div id="nokFields${index}" class="nok-description mt-3">
-                            <div class="form-group">
-                                <label><i class="fas fa-exclamation-triangle text-danger mr-1"></i> <strong>Incidência (explicar a não conformidade)</strong></label>
-                                <input type="text" class="form-control" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-tools mr-1"></i> <strong>Ação corretiva (a definir pelos responsáveis da linha TL, PL, PLM).</strong></label>
-                                <input type="text" class="form-control" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
-                            </div>
-                            <div class="form-group mb-0">
-                                <label><i class="far fa-calendar-alt mr-1"></i> <strong>Prazo</strong></label>
-                                <input type="date" class="form-control" id="prazo${index}">
-                            </div>
+                        <div id="nokFields${index}" class="nok-description">
+                            <input type="text" class="form-control mt-2" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
+                            <input type="text" class="form-control mt-2" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
+                            <input type="date" class="form-control mt-2" id="prazo${index}">
                         </div>
                     </div>
                 `;
