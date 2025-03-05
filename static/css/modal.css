@@ -180,17 +180,16 @@
     background-color: rgba(0, 0, 0, 0.02);
 }
 
-/* Estilos para o botão "Ver" */
 .btn-ver {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
     line-height: 1.5;
     width: 30%;
+    float: right;
 }
 
 @media screen and (max-width: 768px) {
     .btn-ver {
         width: auto;
     }
-    
 }
