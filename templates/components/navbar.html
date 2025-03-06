@@ -2,7 +2,6 @@
 
 <body id="page-top">
     <div id="wrapper">
-        <!-- Sidebar -->
         <ul class="navbar-nav sidebar sidebar-dark accordion toggled" id="accordionSidebar">
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="">
                 <div class="sidebar-brand-icon">
@@ -20,9 +19,16 @@
             </li>
         
             <hr class="sidebar-divider">
-        
+            
             <li class="nav-item {% if request.path == '/home' %}active{% endif %}">
                 <a class="nav-link" href="/home">
+                    <i class="fas fa-clipboard-check mr-2"></i>
+                    <span>LPA</span>
+                </a>
+            </li>
+        
+            <li class="nav-item {% if request.path == '/create_lpa' %}active{% endif %}">
+                <a class="nav-link" href="/create_lpa">
                     <i class="fas fa-check-circle mr-2"></i>
                     <span>Realizar LPA</span>
                 </a>
@@ -34,7 +40,13 @@
                     <span>Consultar LPA</span>
                 </a>
             </li>
-            
+
+            <li class="nav-item {% if request.path == '/incidencias' %}active{% endif %}">
+                <a class="nav-link" href="/incidencias">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span>Incidências</span>
+                </a>
+            </li>
         
             <hr class="sidebar-divider d-none d-md-block">
             
@@ -43,8 +55,7 @@
             </div>
         </ul>
         
-        <!-- End of Sidebar -->
-
+        
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
                 <nav class="navbar navbar-expand navbar-light topbar mb-4 static-top shadow">

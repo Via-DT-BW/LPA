@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+{% include 'components/head.html' %}
+
+{% block content %}
+<body id="page-top">
+    <div id="content">
+        {% include 'components/navbar.html' %}
+        <div class="container-fluid">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="font-weight-bold text-primary mb-0">Resolver Incidência</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Detalhes da Incidência</h5>
+                            <p><strong>Linha:</strong> {{ incidencia.linha }}</p>
+                            <p><strong>Data da Auditoria:</strong> {{ incidencia.data_auditoria }}</p>
+                            <p><strong>Turno:</strong> {{ incidencia.turno }}</p>
+                            <p><strong>Auditor:</strong> {{ incidencia.auditor }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Problema Identificado</h5>
+                            <p><strong>Pergunta:</strong> {{ incidencia.pergunta }}</p>
+                            <p><strong>Não Conformidade:</strong> {{ incidencia.nao_conformidade }}</p>
+                            <p><strong>Ação Corretiva Sugerida:</strong> {{ incidencia.acao_corretiva }}</p>
+                            <p><strong>Prazo:</strong> {{ incidencia.prazo }}</p>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('resolver_incidencia', incidencia_id=incidencia.id) }}">
+                        <div class="form-group">
+                            <label for="comentario">Comentário de Resolução</label>
+                            <textarea class="form-control" id="comentario" name="comentario" rows="3" placeholder="Descreva como o problema foi resolvido..."></textarea>
+                        </div>
+                        
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-success">Confirmar Resolução</button>
+                            <a href="{{ url_for('incidencias') }}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% include 'components/footer.html' %}
+    </div>
+</body>
+{% endblock %}
+</html>

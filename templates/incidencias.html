@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+{% include 'components/head.html' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+{% block content %}
+<body id="page-top">
+    <div id="content">
+        {% include 'components/navbar.html' %}
+        <div class="container-fluid">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="font-weight-bold text-primary mb-0">Incidências NOK por Linha</h6>
+                </div>
+                <form method="GET" action="{{ url_for('incidencias') }}">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="turno">Filtrar por Turno</label>
+                                    <select name="turno" id="turno" class="form-control">
+                                        <option value="">Todos os Turnos</option>
+                                        <option value="Manhã" {% if turno == 'Manhã' %}selected{% endif %}>A (Manhã)</option>
+                                        <option value="Tarde" {% if turno == 'Tarde' %}selected{% endif %}>B (Tarde)</option>
+                                        <option value="Noite" {% if turno == 'Noite' %}selected{% endif %}>C (Noite)</option>
+                                        <option value="Intermédio" {% if turno == 'Intermédio' %}selected{% endif %}>D (Intermédio)</option>
+                                        <option value="4º Turno" {% if turno == '4º Turno' %}selected{% endif %}>E (4º Turno)</option>
+                                        <option value="5º Turno" {% if turno == '5º Turno' %}selected{% endif %}>F (5º Turno)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="data_inicio">Data Início</label>
+                                    <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ data_inicio }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="data_fim">Data Fim</label>
+                                    <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ data_fim }}">
+                                </div>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-block">Filtrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="incidenciasTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Linha</th>
+                                    <th>Data</th>
+                                    <th>Turno</th>
+                                    <th>Auditor</th>
+                                    <th>Não Conformidade</th>
+                                    <th>Ação Corretiva</th>
+                                    <th>Prazo</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for incidencia in incidencias %}
+                                <tr>
+                                    <td>{{ incidencia.linha }}</td>
+                                    <td>{{ incidencia.data_auditoria.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ incidencia.turno }}</td>
+                                    <td>{{ incidencia.auditor }}</td>
+                                    <td>{{ incidencia.nao_conformidade }}</td>
+                                    <td>{{ incidencia.acao_corretiva }}</td>
+                                    <td>{{ incidencia.prazo }}</td>
+                                    <td>
+                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#incidenciaModal" 
+                                            onclick="verDetalhesIncidencia('{{ incidencia.id }}')">Ver Detalhes</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% include 'components/footer.html' %}
+    </div>
+
+    <!-- Modal de Detalhes da Incidência -->
+    <div class="modal fade" id="incidenciaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Detalhes da Incidência</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Detalhes serão carregados aqui -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#incidenciasTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Portuguese-Brasil.json"
+                },
+                "order": [[ 1, "desc" ]], // Ordenar por data decrescente
+                "pageLength": 25
+            });
+        });
+
+        function verDetalhesIncidencia(incidenciaId) {
+            fetch(`/api/incidencia/${incidenciaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    let modalBody = document.getElementById('modalBody');
+
+                    let conteudo = `
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Linha:</strong> ${data.linha}</p>
+                                    <p><strong>Data da Auditoria:</strong> ${data.data_auditoria}</p>
+                                    <p><strong>Turno:</strong> ${data.turno}</p>
+                                    <p><strong>Auditor:</strong> ${data.auditor}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Pergunta:</strong> ${data.pergunta}</p>
+                                    <p><strong>Não Conformidade:</strong> ${data.nao_conformidade}</p>
+                                    <p><strong>Ação Corretiva:</strong> ${data.acao_corretiva}</p>
+                                    <p><strong>Prazo:</strong> ${data.prazo}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    modalBody.innerHTML = conteudo;
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar detalhes:', error);
+                    document.getElementById('modalBody').innerHTML = '<p class="text-danger">Erro ao carregar os detalhes. Por favor, tente novamente.</p>';
+                });
+        }
+    </script>
+
+</body>
+{% endblock %}
+</html>

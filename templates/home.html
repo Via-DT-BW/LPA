@@ -1,130 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
-
 {% include 'components/head.html' %}
 
 {% block content %}
-
 <body id="page-top">
     <div id="content">
         {% include 'components/navbar.html' %}
         <div class="container-fluid">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <div class="row align-items-center">
-                        <div class="col-md-7 order-md-2 d-flex justify-content-end">
-                            <div class="card legend-card">
-                                <div class="card-body py-2 px-3">
-                                    <h6 class="font-weight-bold mb-2">PONTUAÇÃO VERIFICAÇÕES:</h6>
-                                    <div class="text-left">
-                                        <div><span class="text-success font-weight-bold">✓</span> OK</div>
-                                        <div><span class="text-danger font-weight-bold">X</span> NOK: Não conforme (necessária ação)</div>
-                                        <div>NC: Não conforme (corrigido durante a auditoria)</div>
-                                        <div>NT: Não Trabalhou</div>
-                                    </div>
-                                </div>
+                    <h6 class="font-weight-bold text-primary mb-0">Status de LPAs por Linha</h6>
+                </div>
+                <form method="GET" action="{{ url_for('home') }}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="linha">Filtrar por Linha</label>
+                                <select name="linha" id="linha" class="form-control">
+                                    <option value="">Selecione uma Linha</option>
+                                    {% for linha in linhas %}
+                                        <option value="{{ linha.id }}" {% if linha.id == filtro_linha %}selected{% endif %}>{{ linha.linha }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-5 order-md-1">
-                            <h6 class="font-weight-bold text-primary mb-0">SELECIONAR LINHA DE PRODUÇÃO</h6>
-                            <form id="lpa-form" class="form-row mt-3">
-                                <div class="form-group col-md-12 col-sm-12 col-12 mb-0">
-                                    <small class="form-text text-muted mb-2">Escolha a linha para realizar a auditoria</small>
-                                    <select name="filter_prod_line" id="filter_prod_line" class="form-control" onchange="realizarLPA()">
-                                        <option value="">Selecione a linha</option>
-                                        {% for line in linhas %}
-                                        <option value="{{ line }}">{{ line }}</option>
-                                        {% endfor %}
-                                    </select>                                
-                                </div>
-                            </form>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="turno">Filtrar por Turno</label>
+                                <select name="turno" id="turno" class="form-control">
+                                    <option value="">Selecione um Turno</option>
+                                    <option value="Manhã" {% if turno == 'Manhã' %}selected{% endif %}>A (Manhã)</option>
+                                    <option value="Tarde" {% if turno == 'Tarde' %}selected{% endif %}>B (Tarde)</option>
+                                    <option value="Noite" {% if turno == 'Noite' %}selected{% endif %}>C (Noite)</option>
+                                    <option value="Intermédio" {% if turno == 'Intermédio' %}selected{% endif %}>D (Intermédio)</option>
+                                    <option value="4º Turno" {% if turno == '4º Turno' %}selected{% endif %}>E (4º Turno)</option>
+                                    <option value="5º Turno" {% if turno == '5º Turno' %}selected{% endif %}>F (5º Turno)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
                         </div>
                     </div>
-                </div>
-                <div class="card-body hidden" id="lpa-result">
-                    <h5 id="lpa-title" class="font-weight-bold"></h5>
+                </form>
+
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Linha</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                    <th>Turno</th>
+                                    <th>Auditor</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for linha in linhas %}
+                                <tr>
+                                    <td>{{ linha.linha }}</td>
+                                    {% if linha.lpa %}
+                                        {% if linha.lpa.resposta %}
+                                            <td><span class="badge badge-success">Realizado</span></td>
+                                            <td>{{ linha.lpa.data_auditoria.strftime('%d-%m-%Y') if linha.lpa.data_auditoria else '--' }}</td>
+                                            <td>{{ linha.lpa.turno or '--' }}</td>
+                                            <td>{{ linha.lpa.auditor or '--' }}</td>
+                                            <td>
+                                                <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#lpaModal" 
+                                                    onclick="verDetalhes('{{ linha.linha }}', '{{ linha.lpa.data_auditoria }}', '{{ linha.lpa.turno }}', '{{ linha.lpa.auditor }}')">Ver Dados</button>
+                                            </td>
+                                        {% else %}
+                                            <td><span class="badge badge-warning">Por Realizar</span></td>
+                                            <td>{{ linha.lpa.data_auditoria.strftime('%d-%m-%Y') if linha.lpa.data_auditoria else '--' }}</td>
+                                            <td>{{ linha.lpa.turno or '--' }}</td>
+                                            <td>{{ linha.lpa.auditor or '--' }}</td>
+                                            <td>
+                                                <a href="{{ url_for('create_lpa', linha_id=linha.id) }}" class="btn btn-primary btn-sm">Realizar</a>
+                                            </td>
+                                        {% endif %}
+                                    {% else %}
+                                        <td><span class="badge badge-warning">Por Realizar</span></td>
+                                        <td>--</td>
+                                        <td>--</td>
+                                        <td>--</td>
+                                        <td>
+                                            <a href="{{ url_for('create_lpa', linha_id=linha.id) }}" class="btn btn-primary btn-sm">Realizar</a>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            <div id="lpa-section" class="hidden mt-4">
-                <div class="card shadow">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Realizar LPA: <span id="selected-line" class="text-primary"></span></h5>
-                        <span class="badge badge-primary px-3 py-2"><i class="fas fa-clipboard-check mr-1"></i> Auditoria em curso</span>
-                    </div>
-                    <div class="card-body">
-                        <form id="lpa-form-details">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label><i class="far fa-calendar-alt mr-1"></i> Data e Hora Atual</label>
-                                        <input type="text" class="form-control bg-light" id="dataAtual" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label><i class="fas fa-users mr-1"></i> Turno</label>
-                                        <select class="form-control" id="turno">
-                                            <option value="">Selecione o turno</option>
-                                            <option value="Manhã">A (Manhã) </option>
-                                            <option value="Tarde">B (Tarde) </option>
-                                            <option value="Noite">C (Noite)</option>
-                                            <option value="Intermédio">D (Intermédio) </option>
-                                            <option value="4º Turno">E (4º Turno) </option>
-                                            <option value="5º Turno">F (5º Turno) </option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label><i class="fas fa-id-card mr-1"></i> Número de Colaborador</label>
-                                        <input type="text" class="form-control bg-light" id="Nr_colaborador" readonly>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label><i class="fas fa-barcode mr-1"></i> Últimos 4 números da peça em execução</label>
-                                        <input type="text" class="form-control" id="numeroPeca" placeholder="Ex. 2104, 1840, 5898, etc" maxlength="4" min="0" max="9999">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label><i class="fas fa-user-check mr-1"></i> Nome do Auditor</label>
-                                        <input type="text" class="form-control bg-light" id="username" readonly>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="card mt-4 bg-light">
-                                <div class="card-header bg-primary text-white">
-                                    <h6 class="mb-0"><i class="fas fa-tasks mr-2"></i>ITENS A VERIFICAR</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div id="lpa-items"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="text-center mt-4">
-                                <button type="button" class="btn btn-primary px-5" onclick="salvarLPA()">
-                                    <i class="fas fa-save mr-2"></i>Submeter LPA
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>                    
         </div>
+
         {% include 'components/footer.html' %}
     </div>
+
+    <!-- Modal de Detalhes do LPA -->
+    <div class="modal fade" id="lpaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Detalhes do LPA</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Detalhes serão carregados aqui -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        {%include "js/realizarLPA.js"%}
-        {%include "js/formatarData.js"%}
-        {%include "js/toggleNokFields.js"%}
-        {%include "js/salvarLPA.js"%}
+        {% include "js/verLPA.js" %}
     </script>
-    {% endblock %}
+
 </body>
+{% endblock %}
 </html>

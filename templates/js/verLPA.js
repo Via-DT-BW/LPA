@@ -16,7 +16,7 @@ function verDetalhes(linha, dataAuditoria, turno) {
             console.error('Elemento modalBody não encontrado.');
             return;
         }
-        modalBody.innerHTML = ''; 
+        modalBody.innerHTML = '';
 
         if (data.error) {
             modalBody.innerHTML = `<p class="text-muted text-center">${data.error}</p>`;
@@ -29,7 +29,6 @@ function verDetalhes(linha, dataAuditoria, turno) {
                         <tr>
                             <th>Pergunta</th>
                             <th class="text-center">Resposta</th>
-                            <th class="text-center">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -38,7 +37,6 @@ function verDetalhes(linha, dataAuditoria, turno) {
             if (Array.isArray(data)) {
                 data.forEach(item => {
                     let responseClass = item.resposta === 'OK' ? 'status-ok' : 'status-nok';
-                    let actionButton = item.resposta === 'NOK' ? `<button class="btn btn-warning btn-sm" onclick="verIncidencia('${item.incidencias}', '${item.acoes_corretivas}', '${item.prazo}')">Ver Incidência</button>` : '';
 
                     tableContent += `
                         <tr>
@@ -46,7 +44,6 @@ function verDetalhes(linha, dataAuditoria, turno) {
                             <td class="text-center">
                                 <span class="${responseClass}">${item.resposta}</span>
                             </td>
-                            <td class="text-center">${actionButton}</td>
                         </tr>
                     `;
                 });

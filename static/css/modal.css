@@ -1,5 +1,5 @@
 :root {
-    --primary: #051729;
+    --primary: #0E8187;
     --primary-light: #0c2a4e;
     --primary-hover: #2980b9;
     --accent: #2EFAD9;
@@ -8,6 +8,8 @@
     --light-bg: #f8f9fc;
     --border-radius: 0.5rem;
     --text-muted: #6c757d;
+    --btn-ver-color: #0E8187;
+    --btn-ver-hover: #0a6a6f;
 }
 
 .modal .modal-dialog {
@@ -33,7 +35,7 @@
 }
 
 .modal-header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
     color: white;
     padding: 1.25rem 1.5rem;
     align-items: center;
@@ -73,7 +75,8 @@
 
 .modal-body .table {
     margin-bottom: 0;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border-radius: var(--border-radius);
 }
 
 .table thead {
@@ -150,30 +153,11 @@
     color: white;
 }
 
-.modal-footer .btn-secondary:hover, 
+.modal-footer .btn-secondary:hover,
 .modal-footer .btn-secondary:focus {
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
     box-shadow: 0 4px 8px rgba(5, 23, 41, 0.2);
-}
-
-@media (max-width: 768px) {
-    .modal .modal-dialog {
-        margin: 1rem;
-        max-width: calc(100% - 2rem);
-    }
-
-    .modal-header {
-        padding: 1rem;
-    }
-
-    .modal-body {
-        padding: 1rem;
-    }
-
-    .table td, .table th {
-        padding: 0.75rem;
-    }
 }
 
 .modal-body .table-striped tbody tr:nth-of-type(odd) {
@@ -181,15 +165,83 @@
 }
 
 .btn-ver {
-    padding: 0.25rem 0.5rem;
+    padding: 0.5rem 0.5rem;
     font-size: 0.75rem;
     line-height: 1.5;
     width: 30%;
     float: right;
+    background-color: #0E8187;
+    border-color: #0E8187;
+    color: white;
+    transition: all 0.3s ease;
+    position:relative;
+    left: 50%;
+    transform: translate(-50%, 20%);
 }
 
-@media screen and (max-width: 768px) {
+.btn-ver:hover {
+    background-color: #0a6a6f;
+    border-color: #0a6a6f;
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 768px) {
+    .modal .modal-dialog {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    .modal-header {
+        padding: 1rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    .table td, .table th {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .modal-title {
+        font-size: 1.1rem;
+    }
+    
     .btn-ver {
         width: auto;
+        float: none;
+        margin-top: 0.5rem;
+    }
+    
+    .status-ok, .status-nok {
+        padding: 0.15rem 0.5rem;
+        font-size: 0.7rem;
+    }
+    
+    .table {
+        width: 100%;
+        overflow-x: auto;
+        display: block;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+}
+
+/* Para telas muito pequenas */
+@media (max-width: 480px) {
+    .table thead th {
+        font-size: 0.8rem;
+    }
+    
+    .table td {
+        font-size: 0.8rem;
     }
 }

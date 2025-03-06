@@ -23,6 +23,85 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
+@app.route('/home', methods=['GET'])
+def home():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    try:
+        conn = get_db_connection()
+
+        turno = request.args.get('turno', '')
+        filtro_linha = request.args.get('linha', '') 
+
+        query_linhas = "SELECT id, linha FROM linhas WHERE linha IS NOT NULL"
+        df_linhas = pd.read_sql(query_linhas, conn)
+
+        query_lpas = """
+        SELECT l.id AS linha_id, l.linha, 
+               LPA.data_auditoria, LPA.turno, p.username AS auditor, 
+               LPA.resposta, LPA.registo_peca
+        FROM linhas l
+        LEFT JOIN (
+            SELECT lp.linha_id, MAX(LPA.data_auditoria) as max_date
+            FROM LPA
+            JOIN linha_pergunta lp ON LPA.linha_pergunta_id = lp.id
+            GROUP BY lp.linha_id
+        ) recent ON l.id = recent.linha_id
+        LEFT JOIN linha_pergunta lp ON l.id = lp.linha_id
+        LEFT JOIN LPA ON lp.id = LPA.linha_pergunta_id AND 
+                         (recent.max_date IS NULL OR LPA.data_auditoria = recent.max_date)
+        LEFT JOIN pessoas p ON LPA.id_pessoa = p.id
+        WHERE l.linha IS NOT NULL
+        """
+
+        if turno:
+            query_lpas += f" AND LPA.turno = '{turno}'"
+        if filtro_linha:
+            query_lpas += f" AND l.id = {filtro_linha}"  
+
+        query_lpas += " ORDER BY l.linha"
+
+        lpas_result = []
+        cursor = conn.cursor()
+        cursor.execute(query_lpas)
+
+        for row in cursor.fetchall():
+            lpas_result.append({
+                "linha_id": row[0],
+                "linha": row[1],
+                "data_auditoria": row[2],
+                "turno": row[3],
+                "auditor": row[4],
+                "resposta": row[5],
+                "registo_peca": row[6]
+            })
+
+        conn.close()
+
+        linhas_com_status = []
+        for _, linha_row in df_linhas.iterrows():
+            linha_id = linha_row["id"]
+            linha_nome = linha_row["linha"]
+
+            lpa_info = next((lpa for lpa in lpas_result if lpa["linha_id"] == linha_id), None)
+
+            if lpa_info:
+                linhas_com_status.append({
+                    "id": linha_id,
+                    "linha": linha_nome,
+                    "lpa": lpa_info
+                })
+
+        return render_template('home.html', 
+                               linhas=linhas_com_status,
+                               turno=turno,
+                               filtro_linha=filtro_linha, 
+                               todas_linhas=df_linhas)  
+    except Exception as e:
+        flash(f'Erro ao carregar LPAs: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
 @app.route('/login', methods=["POST"])
 def login():
     username = request.form['username']
@@ -46,7 +125,8 @@ def login():
 
         if user:
             session['user_id'] = user[0]  
-            session['username'] = user[1]  
+            session['username'] = user[1]
+            return redirect(url_for('home'))  
         else:
             flash('Credenciais inválidas. Tente novamente.', 'error')
             return redirect(url_for('index'))
@@ -54,22 +134,37 @@ def login():
         flash(f'Erro ao fazer login: {str(e)}', 'error')
         return redirect(url_for('index'))
 
-@app.route('/home')
-def home():
+@app.route('/create_lpa')
+def create_lpa():
     if 'user_id' not in session:
-        return redirect(url_for('index')) 
-    
+        return redirect(url_for('index'))
+
     try:
+        linha_id = request.args.get('linha_id') 
         conn = get_db_connection()
+
         query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
         df = pd.read_sql(query, conn)
         conn.close()
-        
+
         linhas = df['linha'].tolist()
-        return render_template('home.html', linhas=linhas)
+
+        linha_selecionada = None
+        if linha_id:
+            conn = get_db_connection()
+            query = "SELECT linha FROM linhas WHERE id = ?" 
+            linha_df = pd.read_sql(query, conn, params=(linha_id,))
+            if not linha_df.empty:
+                linha_selecionada = linha_df['linha'].iloc[0]
+            conn.close()
+
+        return render_template('create_lpa.html', linhas=linhas, linha_selecionada=linha_selecionada)
+
     except Exception as e:
         flash(f'Erro ao carregar linhas: {str(e)}', 'error')
         return redirect(url_for('index'))
+
+
 
 @app.route("/get_data", methods=["POST"])
 def get_data():
@@ -151,16 +246,33 @@ def save_lpa():
     user_id = session["user_id"]  
     data_auditoria = data.get("data_auditoria")  
 
+    if not data_auditoria:
+        return jsonify({"error": "Data da auditoria é necessária."}), 400
+
     try:
         data_auditoria = datetime.strptime(data_auditoria, "%d/%m/%Y - %H:%M")
     except ValueError:
         return jsonify({"error": "Formato de data inválido. Use o formato DD/MM/YYYY - HH:MM"}), 400
 
-    data_auditoria = data_auditoria.strftime("%Y-%m-%d %H:%M:%S")
+    data_auditoria_str = data_auditoria.strftime("%Y-%m-%d")  
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        check_query = """
+            SELECT COUNT(*)
+            FROM dbo.LPA lpa
+            JOIN dbo.linhas l ON lpa.linha_pergunta_id = l.id
+            WHERE l.linha = ? 
+            AND CONVERT(DATE, lpa.data_auditoria) = ? 
+            AND lpa.turno = ?
+        """
+        cursor.execute(check_query, (linha, data_auditoria_str, turno))
+        existing_lpas = cursor.fetchone()[0]
+
+        if existing_lpas > 0:
+            return jsonify({"error": f"Já existe um LPA registrado para a linha '{linha}' no turno '{turno}' no dia {data_auditoria_str}."}), 400
 
         for item in respostas:
             pergunta = item["pergunta"]
@@ -184,7 +296,7 @@ def save_lpa():
                     OUTPUT INSERTED.id
                     VALUES (?, ?, ?, ?, ?, ?)
                 """
-                cursor.execute(insert_query, (user_id, linha_pergunta_id, resposta, data_auditoria, turno, registo_peca))
+                cursor.execute(insert_query, (user_id, linha_pergunta_id, resposta, data_auditoria_str, turno, registo_peca))
                 lpa_id = cursor.fetchone()[0]  
 
                 if resposta == "NOK":
@@ -216,16 +328,20 @@ def lpa_check():
 
     try:
         conn = get_db_connection()
+        
         query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
         df = pd.read_sql(query, conn)
+        
         conn.close()
 
         linhas = df['linha'].tolist()
+        
         return render_template('lpa_check.html', linhas=linhas)
+    
     except Exception as e:
         flash(f'Erro ao carregar linhas: {str(e)}', 'error')
         return redirect(url_for('index'))
-    
+
 @app.route("/get_lpa_data", methods=["POST"])
 def get_lpa_data():
     data = request.json
@@ -315,6 +431,85 @@ def get_lpa_details():
 
     except Exception as e:
         return jsonify({"error": f"Erro ao buscar detalhes do LPA: {str(e)}"}), 500
+    
+
+@app.route('/incidencias')
+def incidencias():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    try:
+        turno = request.args.get('turno', '')
+        data_inicio = request.args.get('data_inicio', '')
+        data_fim = request.args.get('data_fim', '')
+
+        query = """
+            SELECT 
+                i.id, 
+                l.linha, 
+                lpa.data_auditoria, 
+                lpa.turno, 
+                p.username AS auditor, 
+                pq.pergunta,
+                i.nao_conformidade, 
+                i.acao_corretiva, 
+                i.prazo
+            FROM dbo.Incidencias i
+            JOIN dbo.LPA lpa ON i.id_LPA = lpa.id
+            JOIN dbo.linha_pergunta lp ON lpa.linha_pergunta_id = lp.id
+            JOIN dbo.linhas l ON lp.linha_id = l.id
+            JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
+            JOIN dbo.pessoas p ON lpa.id_pessoa = p.id
+            WHERE 1=1
+        """
+
+        params = []
+
+        if turno:
+            query += " AND lpa.turno = ?"
+            params.append(turno)
+
+        if data_inicio:
+            query += " AND CONVERT(DATE, lpa.data_auditoria) >= CONVERT(DATE, ?)"
+            params.append(data_inicio)
+
+        if data_fim:
+            query += " AND CONVERT(DATE, lpa.data_auditoria) <= CONVERT(DATE, ?)"
+            params.append(data_fim)
+
+        query += " ORDER BY lpa.data_auditoria DESC"
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+        conn.close()
+
+        incidencias = []
+        for row in results:
+            incidencia = {
+                "id": row[0],
+                "linha": row[1],
+                "data_auditoria": row[2],
+                "turno": row[3],
+                "auditor": row[4],
+                "pergunta": row[5],
+                "nao_conformidade": row[6],
+                "acao_corretiva": row[7],
+                "prazo": row[8]
+            }
+            incidencias.append(incidencia)
+
+        return render_template('incidencias.html', 
+                              incidencias=incidencias, 
+                              turno=turno,
+                              data_inicio=data_inicio,
+                              data_fim=data_fim)
+
+    except Exception as e:
+        flash(f'Erro ao carregar incidências: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
