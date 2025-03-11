@@ -9,15 +9,15 @@
         <div class="container-fluid">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h6 class="font-weight-bold text-primary mb-0">Status de LPAs por Linha</h6>
+                    <h6 class="font-weight-bold text-primary mb-0">LPA Diário</h6>
                 </div>
                 <form method="GET" action="{{ url_for('home') }}">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="linha">Filtrar por Linha</label>
+                    <div class="row align-items-end">
+                        <div class="col-md-3">
+                            <div class="form-group ml-4">
+                                <label for="linha" class="pl-2 mt-2">Linha</label>
                                 <select name="linha" id="linha" class="form-control">
-                                    <option value="">Selecione uma Linha</option>
+                                    <option value="">Todas</option>
                                     {% for linha in linhas %}
                                         <option value="{{ linha.id }}" {% if linha.id == filtro_linha %}selected{% endif %}>{{ linha.linha }}</option>
                                     {% endfor %}
@@ -25,11 +25,11 @@
                             </div>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label for="turno">Filtrar por Turno</label>
+                                <label for="turno">Turno</label>
                                 <select name="turno" id="turno" class="form-control">
-                                    <option value="">Selecione um Turno</option>
+                                    <option value="">Todos</option>
                                     <option value="Manhã" {% if turno == 'Manhã' %}selected{% endif %}>A (Manhã)</option>
                                     <option value="Tarde" {% if turno == 'Tarde' %}selected{% endif %}>B (Tarde)</option>
                                     <option value="Noite" {% if turno == 'Noite' %}selected{% endif %}>C (Noite)</option>
@@ -40,8 +40,8 @@
                             </div>
                         </div>
 
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100 py-2 mb-4">Filtrar</button>
                         </div>
                     </div>
                 </form>
@@ -52,7 +52,7 @@
                             <thead>
                                 <tr>
                                     <th>Linha</th>
-                                    <th>Status</th>
+                                    <th>Estado</th>
                                     <th>Data</th>
                                     <th>Turno</th>
                                     <th>Auditor</th>
@@ -103,7 +103,6 @@
         {% include 'components/footer.html' %}
     </div>
 
-    <!-- Modal de Detalhes do LPA -->
     <div class="modal fade" id="lpaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -114,7 +113,6 @@
                     </button>
                 </div>
                 <div class="modal-body" id="modalBody">
-                    <!-- Detalhes serão carregados aqui -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
@@ -124,7 +122,7 @@
     </div>
 
     <script>
-        {% include "js/verLPA.js" %}
+        {% include "js/home/verLPA.js" %}
     </script>
 
 </body>

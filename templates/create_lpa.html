@@ -12,6 +12,22 @@
             <div class="card shadow">
                 <div class="card-header py-3">
                     <div class="row align-items-center">
+                        <div class="col-md-5 order-md-1 selecao-linha">
+                            <h6 class="font-weight-bold text-primary">SELECIONAR LINHA DE PRODUÇÃO</h6>
+                            <form id="lpa-form" class="form-row mt-3">
+                                <div class="form-group col-md-12 col-sm-12 col-12 mb-0">
+                                    <small class="form-text text-muted mb-2">Escolha a linha para realizar a auditoria</small>
+                                    <select name="filter_prod_line" id="filter_prod_line" class="form-control" onchange="realizarLPA()">
+                                        <option value="">Selecione a linha</option>
+                                        {% for line in linhas %}
+                                            <option value="{{ line }}" {% if line == linha_selecionada %}selected{% endif %}>{{ line }}</option>
+                                        {% endfor %}
+                                    </select>                                                                   
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Legenda de Verificações -->
                         <div class="col-md-7 order-md-2 d-flex justify-content-end">
                             <div class="card legend-card">
                                 <div class="card-body py-2 px-3">
@@ -25,22 +41,9 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-5 order-md-1">
-                            <h6 class="font-weight-bold text-primary mb-0">SELECIONAR LINHA DE PRODUÇÃO</h6>
-                            <form id="lpa-form" class="form-row mt-3">
-                                <div class="form-group col-md-12 col-sm-12 col-12 mb-0">
-                                    <small class="form-text text-muted mb-2">Escolha a linha para realizar a auditoria</small>
-                                    <select name="filter_prod_line" id="filter_prod_line" class="form-control" onchange="realizarLPA()">
-                                        <option value="">Selecione a linha</option>
-                                        {% for line in linhas %}
-                                            <option value="{{ line }}" {% if line == linha_selecionada %}selected{% endif %}>{{ line }}</option>
-                                        {% endfor %}
-                                    </select>                                                                   
-                                </div>
-                            </form>
-                        </div>
                     </div>
                 </div>
+    
                 <div class="card-body hidden" id="lpa-result">
                     <h5 id="lpa-title" class="font-weight-bold"></h5>
                 </div>
@@ -119,11 +122,13 @@
         </div>
         {% include 'components/footer.html' %}
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
         {%include "js/realizarLPA.js"%}
         {%include "js/formatarData.js"%}
         {%include "js/toggleNokFields.js"%}
-        {%include "js/salvarLPA.js"%}
+        {%include "js/guardarLPA.js"%}
+
     window.onload = function() {
         var selectedLine = document.getElementById("filter_prod_line").value;
         if (selectedLine) {
@@ -131,7 +136,7 @@
         }
     };
     </script>
-    
+
     {% endblock %}
 </body>
 </html>

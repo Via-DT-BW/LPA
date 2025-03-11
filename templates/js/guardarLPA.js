@@ -1,9 +1,14 @@
 function salvarLPA() {
     var selectedLine = document.getElementById("filter_prod_line").value;
-    var dataAuditoria = formatarDataAtual();
+    var dataAuditoria = formatarDataAtual(); 
     var turno = document.getElementById("turno").value;
     var registoPeca = document.getElementById("numeroPeca").value;
     var respostas = [];
+
+    if (!selectedLine || !turno || !registoPeca) {
+        alert("Por favor, preencha todos os campos obrigatórios antes de salvar.");
+        return;
+    }
 
     document.querySelectorAll("#lpa-items .form-group").forEach((item, index) => {
         var pergunta = item.querySelector("label").innerText.split(" - ")[1];
@@ -16,20 +21,30 @@ function salvarLPA() {
             };
 
             if (resposta.value === "NOK") {
-                respostaObj.nao_conformidade = document.getElementById(`naoConformidade${index}`).value;
-                respostaObj.acao_corretiva = document.getElementById(`acaoCorretiva${index}`).value;
+                var naoConformidade = document.getElementById(`naoConformidade${index}`).value;
+                var acaoCorretiva = document.getElementById(`acaoCorretiva${index}`).value;
+                var prazoInput = document.getElementById(`prazo${index}`).value;
 
-                var prazoInput = document.getElementById(`prazo${index}`);
-                if (prazoInput && prazoInput.value) {
-                    respostaObj.prazo = formatarDataPrazo(prazoInput.value);
+                if (!naoConformidade || !acaoCorretiva || !prazoInput) {
+                    alert(`Preencha todos os campos para a não conformidade na pergunta ${index + 1}.`);
+                    return;
                 }
+
+                respostaObj.nao_conformidade = naoConformidade;
+                respostaObj.acao_corretiva = acaoCorretiva;
+                respostaObj.prazo = formatarDataPrazo(prazoInput); 
             }
 
             respostas.push(respostaObj);
         }
     });
 
-    console.log("Respostas capturadas:", respostas.length); 
+    if (respostas.length === 0) {
+        alert("Por favor, responda a pelo menos uma pergunta.");
+        return;
+    }
+
+    console.log("Respostas capturadas:", respostas.length);
 
     fetch("/save_lpa", {
         method: "POST",
@@ -48,7 +63,7 @@ function salvarLPA() {
     .then(data => {
         if (data.success) {
             alert("LPA salvo com sucesso!");
-            location.reload(); 
+            location.reload();  
         } else {
             alert("Erro ao salvar LPA: " + data.error);
         }
@@ -58,3 +73,4 @@ function salvarLPA() {
         alert("Erro ao salvar. Tente novamente.");
     });
 }
+

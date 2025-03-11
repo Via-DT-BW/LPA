@@ -453,7 +453,9 @@ def incidencias():
                 pq.pergunta,
                 i.nao_conformidade, 
                 i.acao_corretiva, 
-                i.prazo
+                i.prazo,
+                i.resolvido,
+                i.comentario_resolucao
             FROM dbo.Incidencias i
             JOIN dbo.LPA lpa ON i.id_LPA = lpa.id
             JOIN dbo.linha_pergunta lp ON lpa.linha_pergunta_id = lp.id
@@ -496,7 +498,9 @@ def incidencias():
                 "pergunta": row[5],
                 "nao_conformidade": row[6],
                 "acao_corretiva": row[7],
-                "prazo": row[8]
+                "prazo": row[8],
+                "resolvido": row[9],
+                "comentario_resolucao": row[10]
             }
             incidencias.append(incidencia)
 
@@ -509,6 +513,86 @@ def incidencias():
     except Exception as e:
         flash(f'Erro ao carregar incidências: {str(e)}', 'error')
         return redirect(url_for('index'))
+
+    
+@app.route('/resolver_incidencia', methods=['GET', 'POST'])
+def resolver_incidencia():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    try:
+        request_id = request.args.get('id', '')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        if request.method == 'POST':
+            comentario_resolucao = request.form.get('comentario')
+
+            cursor.execute("""
+                UPDATE dbo.Incidencias
+                SET resolvido = 'True', comentario_resolucao = ?
+                WHERE id = ?
+            """, (comentario_resolucao, request_id))
+
+            cursor.execute("""
+                UPDATE dbo.LPA
+                SET resposta = 'OK'
+                WHERE id = (SELECT id_LPA FROM dbo.Incidencias WHERE id = ?)
+            """, (request_id,))
+
+            conn.commit()
+            conn.close()
+
+            flash("Incidência resolvida com sucesso!", "success")
+            return redirect(url_for('incidencias'))
+
+        query = """
+            SELECT 
+                i.id, 
+                l.linha, 
+                lpa.data_auditoria, 
+                lpa.turno, 
+                p.username AS auditor, 
+                pq.pergunta,
+                i.nao_conformidade, 
+                i.acao_corretiva, 
+                i.prazo
+            FROM dbo.Incidencias i
+            JOIN dbo.LPA lpa ON i.id_LPA = lpa.id
+            JOIN dbo.linha_pergunta lp ON lpa.linha_pergunta_id = lp.id
+            JOIN dbo.linhas l ON lp.linha_id = l.id
+            JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
+            JOIN dbo.pessoas p ON lpa.id_pessoa = p.id
+            WHERE i.id = ?
+        """
+
+        cursor.execute(query, (request_id,))
+        incidencia = cursor.fetchone()
+        conn.close()
+
+        if not incidencia:
+            flash("Incidência não encontrada!", "danger")
+            return redirect(url_for('incidencias'))
+
+        incidencia_dict = {
+            "id": incidencia[0],
+            "linha": incidencia[1],
+            "data_auditoria": incidencia[2],
+            "turno": incidencia[3],
+            "auditor": incidencia[4],
+            "pergunta": incidencia[5],
+            "nao_conformidade": incidencia[6],
+            "acao_corretiva": incidencia[7],
+            "prazo": incidencia[8]
+        }
+
+        return render_template('resolver_incidencia.html', incidencia=incidencia_dict)
+
+    except Exception as e:
+        flash(f'Erro ao carregar a incidência: {str(e)}', 'error')
+        return redirect(url_for('incidencias'))
+
 
 
 if __name__ == "__main__":

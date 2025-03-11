@@ -41,7 +41,7 @@
                                 </div>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary btn-block">Filtrar</button>
+                                <button type="submit" class="btn btn-primary btn-block mb-4">Filtrar</button>
                             </div>
                         </div>
                     </div>
@@ -49,7 +49,7 @@
 
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered" id="incidenciasTable" width="100%" cellspacing="0">
+                        <table class="table table-bordered" id="incidenciasTable" width="100%">
                             <thead>
                                 <tr>
                                     <th>Linha</th>
@@ -73,8 +73,13 @@
                                     <td>{{ incidencia.acao_corretiva }}</td>
                                     <td>{{ incidencia.prazo }}</td>
                                     <td>
-                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#incidenciaModal" 
-                                            onclick="verDetalhesIncidencia('{{ incidencia.id }}')">Ver Detalhes</button>
+                                        {% if incidencia.resolvido %}
+                                            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalResolucao{{ incidencia.id }}">
+                                                <i class="fas fa-check"></i> Resolvido
+                                            </button>
+                                        {% else %}
+                                            <a href="{{ url_for('resolver_incidencia', id=incidencia.id) }}" class="btn btn-info btn-sm">Resolver</a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -88,25 +93,28 @@
         {% include 'components/footer.html' %}
     </div>
 
-    <!-- Modal de Detalhes da Incidência -->
-    <div class="modal fade" id="incidenciaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Detalhes da Incidência</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body" id="modalBody">
-                    <!-- Detalhes serão carregados aqui -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+    <!-- Modal de Resolução -->
+    {% for incidencia in incidencias %}
+        <div class="modal fade" id="modalResolucao{{ incidencia.id }}" tabindex="-1" role="dialog" aria-labelledby="modalResolucaoLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalResolucaoLabel">Resolução da Incidência</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <h6><strong>Comentário de Resolução:</strong></h6>
+                        <p>{{ incidencia.comentario_resolucao }}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    {% endfor %}
 
     <script>
         $(document).ready(function() {
@@ -118,39 +126,6 @@
                 "pageLength": 25
             });
         });
-
-        function verDetalhesIncidencia(incidenciaId) {
-            fetch(`/api/incidencia/${incidenciaId}`)
-                .then(response => response.json())
-                .then(data => {
-                    let modalBody = document.getElementById('modalBody');
-
-                    let conteudo = `
-                        <div class="container-fluid">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Linha:</strong> ${data.linha}</p>
-                                    <p><strong>Data da Auditoria:</strong> ${data.data_auditoria}</p>
-                                    <p><strong>Turno:</strong> ${data.turno}</p>
-                                    <p><strong>Auditor:</strong> ${data.auditor}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Pergunta:</strong> ${data.pergunta}</p>
-                                    <p><strong>Não Conformidade:</strong> ${data.nao_conformidade}</p>
-                                    <p><strong>Ação Corretiva:</strong> ${data.acao_corretiva}</p>
-                                    <p><strong>Prazo:</strong> ${data.prazo}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    modalBody.innerHTML = conteudo;
-                })
-                .catch(error => {
-                    console.error('Erro ao buscar detalhes:', error);
-                    document.getElementById('modalBody').innerHTML = '<p class="text-danger">Erro ao carregar os detalhes. Por favor, tente novamente.</p>';
-                });
-        }
     </script>
 
 </body>

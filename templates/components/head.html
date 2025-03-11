@@ -1,11 +1,16 @@
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>LPA Management</title>
-<link rel="icon" type="image/ico" href="{{ url_for('static', filename='content/icon.webp') }}">
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<link href="static/css/main.css" rel="stylesheet"/>
-<link href="static/css/modal.css" rel="stylesheet"/>
-<link href="{{ url_for('static', filename='css/sb-admin-2.min.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
-{% block custom_styles %}{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>LPA Management</title>
+    <link rel="icon" type="image/ico" href="{{ url_for('static', filename='content/icon.webp') }}">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link href="static/css/main.css" rel="stylesheet"/>
+    <link href="static/css/modal.css" rel="stylesheet"/>
+    <link href="{{ url_for('static', filename='css/sb-admin-2.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    {% block custom_styles %}{% endblock %}
+</head>

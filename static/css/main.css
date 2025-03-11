@@ -225,4 +225,7 @@
             background-color: rgba(5, 23, 41, 0.05);
         }
 
+        .selecao-linha h6 {
+            margin-top: -10%; /* Ajuste conforme necessário */
+        }
         
