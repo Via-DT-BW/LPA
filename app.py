@@ -3,7 +3,7 @@ import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 import pyodbc
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 app = Flask(__name__)
@@ -228,7 +228,7 @@ def get_user_data():
 
     except Exception as e:
         return jsonify({"error": f"Erro ao carregar dados do usuário: {str(e)}"}), 500
-    
+
 @app.route("/save_lpa", methods=["POST"])
 def save_lpa():
     if "user_id" not in session:
@@ -239,40 +239,38 @@ def save_lpa():
     respostas = data.get("respostas")  
     turno = data.get("turno")
     registo_peca = data.get("registo_peca")
+    data_auditoria = data.get("data_auditoria")  
 
-    if not linha or not respostas or not turno or not registo_peca:
+    if not linha or not respostas or not turno or not registo_peca or not data_auditoria:
         return jsonify({"error": "Dados incompletos"}), 400
 
     user_id = session["user_id"]  
-    data_auditoria = data.get("data_auditoria")  
-
-    if not data_auditoria:
-        return jsonify({"error": "Data da auditoria é necessária."}), 400
 
     try:
-        data_auditoria = datetime.strptime(data_auditoria, "%d/%m/%Y - %H:%M")
+        data_auditoria = datetime.strptime(data_auditoria, "%d/%m/%Y - %H:%M") 
     except ValueError:
         return jsonify({"error": "Formato de data inválido. Use o formato DD/MM/YYYY - HH:MM"}), 400
-
-    data_auditoria_str = data_auditoria.strftime("%Y-%m-%d")  
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        data_inicio = (data_auditoria - timedelta(days=1)).replace(hour=22, minute=0, second=0)  
+        data_fim = data_auditoria.replace(hour=23, minute=59, second=59)  
 
         check_query = """
             SELECT COUNT(*)
             FROM dbo.LPA lpa
             JOIN dbo.linhas l ON lpa.linha_pergunta_id = l.id
             WHERE l.linha = ? 
-            AND CONVERT(DATE, lpa.data_auditoria) = ? 
+            AND lpa.data_auditoria BETWEEN ? AND ?
             AND lpa.turno = ?
         """
-        cursor.execute(check_query, (linha, data_auditoria_str, turno))
+        cursor.execute(check_query, (linha, data_inicio, data_fim, turno))
         existing_lpas = cursor.fetchone()[0]
 
         if existing_lpas > 0:
-            return jsonify({"error": f"Já existe um LPA registrado para a linha '{linha}' no turno '{turno}' no dia {data_auditoria_str}."}), 400
+            return jsonify({"error": f"Já existe um LPA registrado para a linha '{linha}' no turno '{turno}' dentro do intervalo permitido."}), 400
 
         for item in respostas:
             pergunta = item["pergunta"]
@@ -296,7 +294,7 @@ def save_lpa():
                     OUTPUT INSERTED.id
                     VALUES (?, ?, ?, ?, ?, ?)
                 """
-                cursor.execute(insert_query, (user_id, linha_pergunta_id, resposta, data_auditoria_str, turno, registo_peca))
+                cursor.execute(insert_query, (user_id, linha_pergunta_id, resposta, data_auditoria, turno, registo_peca))  # <-- Salva data e hora
                 lpa_id = cursor.fetchone()[0]  
 
                 if resposta == "NOK":
@@ -320,6 +318,7 @@ def save_lpa():
 
     except Exception as e:
         return jsonify({"error": f"Erro ao salvar LPA: {str(e)}"}), 500
+
 
 @app.route('/lpa_check')
 def lpa_check():
@@ -596,4 +595,4 @@ def resolver_incidencia():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
