@@ -139,30 +139,32 @@ def create_lpa():
     if 'user_id' not in session:
         return redirect(url_for('index'))
 
-    try:
-        linha_id = request.args.get('linha_id') 
+    linha_id = request.args.get('linha_id')  # Obtém a linha
+    turno = request.args.get('turno', '')  # Obtém o turno passado na URL
+
+    conn = get_db_connection()
+    query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
+    df = pd.read_sql(query, conn)
+    conn.close()
+
+    linhas = df['linha'].tolist()
+
+    linha_selecionada = None
+    if linha_id:
         conn = get_db_connection()
-
-        query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
-        df = pd.read_sql(query, conn)
+        query = "SELECT linha FROM linhas WHERE id = ?"
+        linha_df = pd.read_sql(query, conn, params=(linha_id,))
         conn.close()
+        
+        if not linha_df.empty:
+            linha_selecionada = linha_df['linha'].iloc[0]
 
-        linhas = df['linha'].tolist()
-
-        linha_selecionada = None
-        if linha_id:
-            conn = get_db_connection()
-            query = "SELECT linha FROM linhas WHERE id = ?" 
-            linha_df = pd.read_sql(query, conn, params=(linha_id,))
-            if not linha_df.empty:
-                linha_selecionada = linha_df['linha'].iloc[0]
-            conn.close()
-
-        return render_template('create_lpa.html', linhas=linhas, linha_selecionada=linha_selecionada)
-
-    except Exception as e:
-        flash(f'Erro ao carregar linhas: {str(e)}', 'error')
-        return redirect(url_for('index'))
+    return render_template(
+        'create_lpa.html',
+        linhas=linhas,
+        linha_selecionada=linha_selecionada,
+        turno=turno  # Passa o turno para o template
+    )
 
 
 
@@ -593,6 +595,5 @@ def resolver_incidencia():
         return redirect(url_for('incidencias'))
 
 
-
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

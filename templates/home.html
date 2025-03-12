@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 {% include 'components/head.html' %}
+<style>
+    @media (max-width: 768px) {
+        .btn {
+            width: 100%; /* Faz o botão ocupar toda a largura */
+            font-size: 10px; /* Diminui um pouco o tamanho do texto */
+            margin-top: 5px; /* Adiciona um espaçamento entre os botões */
+        }
+    }
+</style>
 
 {% block content %}
 <body id="page-top">
@@ -12,36 +21,38 @@
                     <h6 class="font-weight-bold text-primary mb-0">LPA Diário</h6>
                 </div>
                 <form method="GET" action="{{ url_for('home') }}">
-                    <div class="row align-items-end">
-                        <div class="col-md-3">
-                            <div class="form-group ml-4">
-                                <label for="linha" class="pl-2 mt-2">Linha</label>
-                                <select name="linha" id="linha" class="form-control">
-                                    <option value="">Todas</option>
-                                    {% for linha in linhas %}
-                                        <option value="{{ linha.id }}" {% if linha.id == filtro_linha %}selected{% endif %}>{{ linha.linha }}</option>
-                                    {% endfor %}
-                                </select>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="linha">Filtrar por Linha</label>
+                                    <select name="linha" id="linha" class="form-control">
+                                        <option value="">Todas as Linhas</option>
+                                        {% for linha in linhas %}
+                                            <option value="{{ linha.id }}" {% if linha.id == filtro_linha %}selected{% endif %}>{{ linha.linha }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="turno">Turno</label>
-                                <select name="turno" id="turno" class="form-control">
-                                    <option value="">Todos</option>
-                                    <option value="Manhã" {% if turno == 'Manhã' %}selected{% endif %}>A (Manhã)</option>
-                                    <option value="Tarde" {% if turno == 'Tarde' %}selected{% endif %}>B (Tarde)</option>
-                                    <option value="Noite" {% if turno == 'Noite' %}selected{% endif %}>C (Noite)</option>
-                                    <option value="Intermédio" {% if turno == 'Intermédio' %}selected{% endif %}>D (Intermédio)</option>
-                                    <option value="4º Turno" {% if turno == '4º Turno' %}selected{% endif %}>E (4º Turno)</option>
-                                    <option value="5º Turno" {% if turno == '5º Turno' %}selected{% endif %}>F (5º Turno)</option>
-                                </select>
+                
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="turno">Filtrar por Turno</label>
+                                    <select name="turno" id="turno" class="form-control">
+                                        <option value="">Todos os Turnos</option>
+                                        <option value="Manhã" {% if turno == 'Manhã' %}selected{% endif %}>A (Manhã)</option>
+                                        <option value="Tarde" {% if turno == 'Tarde' %}selected{% endif %}>B (Tarde)</option>
+                                        <option value="Noite" {% if turno == 'Noite' %}selected{% endif %}>C (Noite)</option>
+                                        <option value="Intermédio" {% if turno == 'Intermédio' %}selected{% endif %}>D (Intermédio)</option>
+                                        <option value="4º Turno" {% if turno == '4º Turno' %}selected{% endif %}>E (4º Turno)</option>
+                                        <option value="5º Turno" {% if turno == '5º Turno' %}selected{% endif %}>F (5º Turno)</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100 py-2 mb-4">Filtrar</button>
+                
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-block mb-4">Filtrar</button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -52,46 +63,58 @@
                             <thead>
                                 <tr>
                                     <th>Linha</th>
-                                    <th>Estado</th>
-                                    <th>Data</th>
                                     <th>Turno</th>
+                                    <th>Estado</th>
                                     <th>Auditor</th>
                                     <th>Ação</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for linha in linhas %}
-                                <tr>
-                                    <td>{{ linha.linha }}</td>
-                                    {% if linha.lpa %}
-                                        {% if linha.lpa.resposta %}
-                                            <td><span class="badge badge-success">Realizado</span></td>
-                                            <td>{{ linha.lpa.data_auditoria.strftime('%d-%m-%Y') if linha.lpa.data_auditoria else '--' }}</td>
-                                            <td>{{ linha.lpa.turno or '--' }}</td>
-                                            <td>{{ linha.lpa.auditor or '--' }}</td>
-                                            <td>
-                                                <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#lpaModal" 
-                                                    onclick="verDetalhes('{{ linha.linha }}', '{{ linha.lpa.data_auditoria }}', '{{ linha.lpa.turno }}', '{{ linha.lpa.auditor }}')">Ver Dados</button>
-                                            </td>
-                                        {% else %}
-                                            <td><span class="badge badge-warning">Por Realizar</span></td>
-                                            <td>{{ linha.lpa.data_auditoria.strftime('%d-%m-%Y') if linha.lpa.data_auditoria else '--' }}</td>
-                                            <td>{{ linha.lpa.turno or '--' }}</td>
-                                            <td>{{ linha.lpa.auditor or '--' }}</td>
-                                            <td>
-                                                <a href="{{ url_for('create_lpa', linha_id=linha.id) }}" class="btn btn-primary btn-sm">Realizar</a>
-                                            </td>
-                                        {% endif %}
-                                    {% else %}
-                                        <td><span class="badge badge-warning">Por Realizar</span></td>
-                                        <td>--</td>
-                                        <td>--</td>
-                                        <td>--</td>
-                                        <td>
-                                            <a href="{{ url_for('create_lpa', linha_id=linha.id) }}" class="btn btn-primary btn-sm">Realizar</a>
-                                        </td>
+                                    {% if turno == "" or turno == "Manhã" or turno == "Tarde" or turno == "Noite" %}
+                                        {% set turnos_principais = ['Manhã', 'Tarde', 'Noite'] %}
+                                    {% elif turno == "Intermédio" %}
+                                        {% set turnos_principais = ['Intermédio'] %}
+                                    {% elif turno == "4º Turno" %}
+                                        {% set turnos_principais = ['4º Turno'] %}
+                                    {% elif turno == "5º Turno" %}
+                                        {% set turnos_principais = ['5º Turno'] %}
                                     {% endif %}
-                                </tr>
+
+                                    {% for turno_atual in turnos_principais %}
+                                        <tr {% if loop.first %}class="border-top-0"{% endif %}>
+                                            {% if loop.first %}
+                                                <td rowspan="{{ turnos_principais|length }}" class="align-middle">{{ linha.linha }}</td>
+                                            {% endif %}
+                                            <td>{{ turno_atual }}</td>
+
+                                            {% if linha.lpa and linha.lpa.turno == turno_atual %}
+                                                {% if linha.lpa.resposta %}
+                                                    <td><span class="badge badge-success">Realizado</span></td>
+                                                    <td>{{ linha.lpa.auditor or '--' }}</td>
+                                                    <td>
+                                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#lpaModal" 
+                                                            onclick="verDetalhes('{{ linha.linha }}', '{{ linha.lpa.data_auditoria }}', '{{ linha.lpa.turno }}', '{{ linha.lpa.auditor }}')">Ver Dados</button>
+                                                    </td>
+                                                {% else %}
+                                                    <td><span class="badge badge-warning">Por Realizar</span></td>
+                                                    <td>{{ linha.lpa.auditor or '--' }}</td>
+                                                    <td>
+                                                        <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=turno_atual) }}" class="btn btn-primary btn-sm">Realizar</a>
+                                                    </td>
+                                                {% endif %}
+                                            {% else %}
+                                                <td><span class="badge badge-warning">Por Realizar</span></td>
+                                                <td>--</td>
+                                                <td>
+                                                    <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=turno_atual) }}" 
+                                                       class="btn btn-primary btn-sm">
+                                                        Realizar
+                                                    </a>
+                                                </td>                                                
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
                                 {% endfor %}
                             </tbody>
                         </table>

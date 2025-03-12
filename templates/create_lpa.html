@@ -13,7 +13,7 @@
                 <div class="card-header py-3">
                     <div class="row align-items-center">
                         <div class="col-md-5 order-md-1 selecao-linha">
-                            <h6 class="font-weight-bold text-primary">SELECIONAR LINHA DE PRODUÇÃO</h6>
+                            <h6 class="font-weight-bold text-primary">Selecionar Linha de Produção</h6>
                             <form id="lpa-form" class="form-row mt-3">
                                 <div class="form-group col-md-12 col-sm-12 col-12 mb-0">
                                     <small class="form-text text-muted mb-2">Escolha a linha para realizar a auditoria</small>
@@ -69,13 +69,14 @@
                                         <label><i class="fas fa-users mr-1"></i> Turno</label>
                                         <select class="form-control" id="turno">
                                             <option value="">Selecione o turno</option>
-                                            <option value="Manhã">A (Manhã) </option>
-                                            <option value="Tarde">B (Tarde) </option>
-                                            <option value="Noite">C (Noite)</option>
-                                            <option value="Intermédio">D (Intermédio) </option>
-                                            <option value="4º Turno">E (4º Turno) </option>
-                                            <option value="5º Turno">F (5º Turno) </option>
+                                            <option value="Manhã" {% if turno == "Manhã" %}selected{% endif %}>A (Manhã)</option>
+                                            <option value="Tarde" {% if turno == "Tarde" %}selected{% endif %}>B (Tarde)</option>
+                                            <option value="Noite" {% if turno == "Noite" %}selected{% endif %}>C (Noite)</option>
+                                            <option value="Intermédio" {% if turno == "Intermédio" %}selected{% endif %}>D (Intermédio)</option>
+                                            <option value="4º Turno" {% if turno == "4º Turno" %}selected{% endif %}>E (4º Turno)</option>
+                                            <option value="5º Turno" {% if turno == "5º Turno" %}selected{% endif %}>F (5º Turno)</option>
                                         </select>
+                                        
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -111,9 +112,9 @@
                             </div>
                             
                             <div class="text-center mt-4">
-                                <button type="button" class="btn btn-primary px-5" onclick="salvarLPA()">
+                                <button type="button" class="btn btn-primary px-5" onclick="salvarLPA(event)">
                                     <i class="fas fa-save mr-2"></i>Submeter LPA
-                                </button>
+                                </button>                                
                             </div>
                         </form>
                     </div>
@@ -122,7 +123,8 @@
         </div>
         {% include 'components/footer.html' %}
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js" defer></script>
     <script>
         {%include "js/create_lpa/realizarLPA.js"%}
         {%include "js/create_lpa/formatarData.js"%}
