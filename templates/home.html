@@ -1,21 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 {% include 'components/head.html' %}
-<style>
-    @media (max-width: 768px) {
-        .btn {
-            width: 100%; /* Faz o botão ocupar toda a largura */
-            font-size: 10px; /* Diminui um pouco o tamanho do texto */
-            margin-top: 5px; /* Adiciona um espaçamento entre os botões */
-        }
-    }
-</style>
-
 {% block content %}
 <body id="page-top">
     <div id="content">
         {% include 'components/navbar.html' %}
-        <div class="container-fluid">
+        <div class="container-fluid flex-grow-1">
             <div class="card shadow">
                 <div class="card-header py-3">
                     <h6 class="font-weight-bold text-primary mb-0">LPA Diário</h6>
@@ -28,13 +18,12 @@
                                     <label for="linha">Filtrar por Linha</label>
                                     <select name="linha" id="linha" class="form-control">
                                         <option value="">Todas as Linhas</option>
-                                        {% for linha in linhas %}
-                                            <option value="{{ linha.id }}" {% if linha.id == filtro_linha %}selected{% endif %}>{{ linha.linha }}</option>
+                                        {% for linha in todas_linhas %}
+                                            <option value="{{ linha.id }}" {% if linha.id|string == filtro_linha|string %}selected{% endif %}>{{ linha.linha }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                             </div>
-                
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="turno">Filtrar por Turno</label>
@@ -49,9 +38,8 @@
                                     </select>
                                 </div>
                             </div>
-                
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary btn-block mb-4">Filtrar</button>
+                                <button type="submit" class="btn btn-primary btn-block mb-3">Filtrar</button>
                             </div>
                         </div>
                     </div>
@@ -71,47 +59,30 @@
                             </thead>
                             <tbody>
                                 {% for linha in linhas %}
-                                    {% if turno == "" or turno == "Manhã" or turno == "Tarde" or turno == "Noite" %}
-                                        {% set turnos_principais = ['Manhã', 'Tarde', 'Noite'] %}
-                                    {% elif turno == "Intermédio" %}
-                                        {% set turnos_principais = ['Intermédio'] %}
-                                    {% elif turno == "4º Turno" %}
-                                        {% set turnos_principais = ['4º Turno'] %}
-                                    {% elif turno == "5º Turno" %}
-                                        {% set turnos_principais = ['5º Turno'] %}
-                                    {% endif %}
-
-                                    {% for turno_atual in turnos_principais %}
+                                    {% for lpa in linha.lpas %}
                                         <tr {% if loop.first %}class="border-top-0"{% endif %}>
                                             {% if loop.first %}
-                                                <td rowspan="{{ turnos_principais|length }}" class="align-middle">{{ linha.linha }}</td>
+                                                <td rowspan="{{ linha.lpas|length }}" class="align-middle">{{ linha.linha }}</td>
                                             {% endif %}
-                                            <td>{{ turno_atual }}</td>
-
-                                            {% if linha.lpa and linha.lpa.turno == turno_atual %}
-                                                {% if linha.lpa.resposta %}
-                                                    <td><span class="badge badge-success">Realizado</span></td>
-                                                    <td>{{ linha.lpa.auditor or '--' }}</td>
-                                                    <td>
-                                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#lpaModal" 
-                                                            onclick="verDetalhes('{{ linha.linha }}', '{{ linha.lpa.data_auditoria }}', '{{ linha.lpa.turno }}', '{{ linha.lpa.auditor }}')">Ver Dados</button>
-                                                    </td>
-                                                {% else %}
-                                                    <td><span class="badge badge-warning">Por Realizar</span></td>
-                                                    <td>{{ linha.lpa.auditor or '--' }}</td>
-                                                    <td>
-                                                        <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=turno_atual) }}" class="btn btn-primary btn-sm">Realizar</a>
-                                                    </td>
-                                                {% endif %}
+                                            <td>{{ lpa.turno }}</td>
+                                            {% if lpa.estado == "Realizado" %}
+                                                <td><span class="badge badge-success">Realizado</span></td>
+                                                <td>{{ lpa.auditor }}</td>
+                                                <td>
+                                                    <button class="btn btn-info btn-sm btn-sm-mobile" data-toggle="modal" data-target="#lpaModal" 
+                                                        onclick="verDetalhes('{{ linha.linha }}', '{{ lpa.data_auditoria }}', '{{ lpa.turno }}', '{{ lpa.auditor }}')">
+                                                        Ver Dados
+                                                    </button>
+                                                </td>
                                             {% else %}
                                                 <td><span class="badge badge-warning">Por Realizar</span></td>
-                                                <td>--</td>
+                                                <td>{{ lpa.auditor }}</td>
                                                 <td>
-                                                    <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=turno_atual) }}" 
-                                                       class="btn btn-primary btn-sm">
+                                                    <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=lpa.turno) }}" 
+                                                       class="btn btn-primary btn-sm btn-sm-mobile">
                                                         Realizar
                                                     </a>
-                                                </td>                                                
+                                                </td>                                                        
                                             {% endif %}
                                         </tr>
                                     {% endfor %}
@@ -122,9 +93,9 @@
                 </div>
             </div>
         </div>
+    </div> 
 
-        {% include 'components/footer.html' %}
-    </div>
+    {% include 'components/footer.html' %} 
 
     <div class="modal fade" id="lpaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -144,9 +115,15 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
     <script>
-        {% include "js/home/verLPA.js" %}
+        {% if filtro_linha or turno %}
+            toastr.success("Filtros aplicados com sucesso!", "Sucesso", {
+            });
+        {% endif %}
     </script>
+    
 
 </body>
 {% endblock %}

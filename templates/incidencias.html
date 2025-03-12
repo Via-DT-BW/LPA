@@ -6,7 +6,7 @@
 <body id="page-top">
     <div id="content">
         {% include 'components/navbar.html' %}
-        <div class="container-fluid">
+        <div class="container-fluid flex-grow-1">
             <div class="card shadow">
                 <div class="card-header py-3">
                     <h6 class="font-weight-bold text-primary mb-0">Incidências NOK por Linha</h6>
@@ -41,7 +41,7 @@
                                 </div>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary btn-block mb-4">Filtrar</button>
+                                <button type="submit" class="btn btn-primary btn-block mb-3">Filtrar</button>
                             </div>
                         </div>
                     </div>
@@ -56,8 +56,6 @@
                                     <th>Data</th>
                                     <th>Turno</th>
                                     <th>Auditor</th>
-                                    <th>Não Conformidade</th>
-                                    <th>Ação Corretiva</th>
                                     <th>Prazo</th>
                                     <th>Ação</th>
                                 </tr>
@@ -69,16 +67,14 @@
                                     <td>{{ incidencia.data_auditoria.strftime('%d-%m-%Y') }}</td>
                                     <td>{{ incidencia.turno }}</td>
                                     <td>{{ incidencia.auditor }}</td>
-                                    <td>{{ incidencia.nao_conformidade }}</td>
-                                    <td>{{ incidencia.acao_corretiva }}</td>
                                     <td>{{ incidencia.prazo }}</td>
                                     <td>
                                         {% if incidencia.resolvido %}
-                                            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalResolucao{{ incidencia.id }}">
+                                            <button class="btn btn-success btn-sm btn-sm-mobile" data-toggle="modal" data-target="#modalResolucao{{ incidencia.id }}">
                                                 <i class="fas fa-check"></i> Resolvido
                                             </button>
                                         {% else %}
-                                            <a href="{{ url_for('resolver_incidencia', id=incidencia.id) }}" class="btn btn-info btn-sm">Resolver</a>
+                                            <a href="{{ url_for('resolver_incidencia', id=incidencia.id) }}" class="btn btn-primary btn-sm btn-sm-mobile">Resolver</a>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -90,39 +86,52 @@
             </div>
         </div>
 
-        {% include 'components/footer.html' %}
-    </div>
+    </div> 
+
+    {% include 'components/footer.html' %}
 
     <!-- Modal de Resolução -->
     {% for incidencia in incidencias %}
-        <div class="modal fade" id="modalResolucao{{ incidencia.id }}" tabindex="-1" role="dialog" aria-labelledby="modalResolucaoLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalResolucaoLabel">Resolução da Incidência</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <h6><strong>Comentário de Resolução:</strong></h6>
+    <div class="modal fade" id="modalResolucao{{ incidencia.id }}" tabindex="-1" role="dialog" aria-labelledby="modalResolucaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalResolucaoLabel">Detalhes da Incidência</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h6><strong>Não Conformidade:</strong></h6>
+                    <p>{{ incidencia.nao_conformidade }}</p>
+
+                    <h6><strong>Ação Corretiva:</strong></h6>
+                    <p>{{ incidencia.acao_corretiva }}</p>
+
+                    <h6><strong>Estado:</strong></h6>
+                    <p>{{ 'Resolvido' if incidencia.resolvido else 'Pendente' }}</p>
+
+                    {% if incidencia.resolvido %}
+                        <h6><strong>Comentário da Resolução:</strong></h6>
                         <p>{{ incidencia.comentario_resolucao }}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
-                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
-    {% endfor %}
+    </div>
+{% endfor %}
+
 
     <script>
         $(document).ready(function() {
             $('#incidenciasTable').DataTable({
                 "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Portuguese-Brasil.json"
+                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Portuguese.json"
                 },
-                "order": [[ 1, "desc" ]], // Ordenar por data decrescente
+                "order": [[ 1, "desc" ]], 
                 "pageLength": 25
             });
         });

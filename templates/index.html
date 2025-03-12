@@ -167,7 +167,6 @@
             border-radius: 10px;
             padding: 1rem;
             width: 100%;
-            font-size: 1.1rem;
             border: none;
         }
 
@@ -193,6 +192,11 @@
                 font-size: 1.2rem;
             }
 
+            @media (max-width: 768px) {
+                .title, .title-small {
+                    top: 4rem;                }
+            }
+
             .navbar-nav {
                 text-align: center;
             }
@@ -200,8 +204,7 @@
             .nav-item {
                 padding: 0 10px;
             }
-        }
-    </style>
+            </style>
 </head>
 <body>
     <div class="video-bg">
@@ -225,6 +228,7 @@
                     <li class="nav-item"><a class="nav-link" href="#">LPA 1º Camada</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">LPA 2º Camada</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Other Checks</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Analytics</a></li>
                 </ul>
             </div>
         </div>
@@ -236,8 +240,13 @@
     </div>
 
     <footer class="footer">
-        Copyright &copy; {{year}} Digital Transformation - Viana do Castelo
+        Copyright &copy; <span id="currentYear"></span> Digital Transformation - Viana do Castelo
     </footer>
+    
+    <script>
+        document.getElementById("currentYear").textContent = new Date().getFullYear();
+    </script>
+    
 
     <!-- Modal de Login -->
     <div class="modal fade" id="modalLogin" tabindex="-1" role="dialog" aria-labelledby="modalLoginLabel" aria-hidden="true">
@@ -264,8 +273,7 @@
                         </div>
                     </form>
                     <p class="text-center mt-3">
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#modalForgotPassword">Esqueceu-se da sua palavra-passe?</a>
-                    </p>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#modalForgotPassword">Esqueceu-se da sua palavra-passe?</a>                    </p>
                     <div>
                         {% with messages = get_flashed_messages() %}
                           {% if messages %}
@@ -286,7 +294,7 @@
         </div>
     </div>
 
- 
+    {% include 'reset_password.html' %}
     <script>
         document.querySelectorAll('.nav-link').forEach(function (item) {
             item.addEventListener('click', function () {

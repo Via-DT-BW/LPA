@@ -1,65 +1,68 @@
 function salvarLPA(event) {
     event.preventDefault();
-    
+
     var selectedLine = document.getElementById("filter_prod_line").value;
     var dataAuditoria = formatarDataAtual();
     var turno = document.getElementById("turno").value;
     var registoPeca = document.getElementById("numeroPeca").value;
     var respostas = [];
-    var hasValidationError = false; // Add this flag
-    
+    var hasValidationError = false;
+
     if (!selectedLine || !turno || !registoPeca) {
         toastr.error("Por favor, preencha todos os campos obrigatórios antes de salvar.");
         return;
     }
-    
+
     document.querySelectorAll("#lpa-items .form-group").forEach((item, index) => {
         var pergunta = item.querySelector("label").innerText.split(" - ")[1];
         var resposta = document.querySelector(`input[name="item${index}"]:checked`);
-        
+
         if (resposta) {
             var respostaObj = {
                 pergunta: pergunta,
                 resposta: resposta.value
             };
-            
+
             if (resposta.value === "NOK") {
-                // Verificar se os campos obrigatórios estão preenchidos
                 var naoConformidade = document.getElementById(`naoConformidade${index}`).value;
                 var acaoCorretiva = document.getElementById(`acaoCorretiva${index}`).value;
                 var prazoInput = document.getElementById(`prazo${index}`).value;
-                
-                // Se algum dos campos obrigatórios estiver vazio, mostrar mensagem de erro
+
                 if (!naoConformidade || !acaoCorretiva || !prazoInput) {
                     toastr.error(`Preencha todos os campos para a não conformidade na pergunta ${index + 1}.`);
-                    hasValidationError = true; // Set the flag instead of return
-                    return; // This only exits the current iteration
+                    hasValidationError = true;
+                    return;
                 }
-                
-                // Adicionar os dados de não conformidade ao objeto de resposta
+
                 respostaObj.nao_conformidade = naoConformidade;
                 respostaObj.acao_corretiva = acaoCorretiva;
                 respostaObj.prazo = formatarDataPrazo(prazoInput);
             }
-            
-            // Adiciona a resposta à lista de respostas
+
             respostas.push(respostaObj);
         }
     });
-    
-    // Check validation flag before proceeding
+
     if (hasValidationError) {
-        return; // Stop the function if there was a validation error
+        return;
     }
-    
+
     if (respostas.length === 0) {
         toastr.error("Por favor, responda a pelo menos uma pergunta.");
         return;
     }
-    
+
+    // 🟢 Exibir Toastr de carregamento
+    var loadingToast = toastr.info("Salvando LPA...", {
+        timeOut: 0, // Não fecha automaticamente
+        extendedTimeOut: 0,
+        tapToDismiss: false,
+        closeButton: false,
+        progressBar: true
+    });
+
     console.log("Respostas capturadas:", respostas.length);
-    
-    // Enviar os dados para o backend
+
     fetch("/save_lpa", {
         method: "POST",
         headers: {
@@ -75,14 +78,21 @@ function salvarLPA(event) {
     })
     .then(response => response.json())
     .then(data => {
+        toastr.clear(loadingToast); // Remover Toastr de carregamento
+
         if (data.success) {
             toastr.success("LPA guardado com sucesso!");
-            location.reload();  // Atualiza a página após salvar com sucesso
+
+            // 🔹 Pequeno delay antes de recarregar a página (para o toastr ser visto)
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
         } else {
             toastr.error("Erro ao guardar LPA: " + data.error);
         }
     })
     .catch(error => {
+        toastr.clear(loadingToast);
         console.error("Erro ao guardar LPA:", error);
         toastr.error("Erro ao guardar. Tente novamente.");
     });

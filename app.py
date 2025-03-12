@@ -19,6 +19,7 @@ connection_string = settings[0]["connection_string_db_teste_jose"]
 def get_db_connection():
     return pyodbc.connect(connection_string)
 
+     #################### 1º CAMADA #####################################
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -34,8 +35,9 @@ def home():
         turno = request.args.get('turno', '')
         filtro_linha = request.args.get('linha', '') 
 
-        query_linhas = "SELECT id, linha FROM linhas WHERE linha IS NOT NULL"
+        query_linhas = "SELECT id, linha FROM linhas WHERE linha IS NOT NULL ORDER BY linha"
         df_linhas = pd.read_sql(query_linhas, conn)
+        todas_linhas = [{"id": row["id"], "linha": row["linha"]} for _, row in df_linhas.iterrows()]
 
         query_lpas = """
         SELECT l.id AS linha_id, l.linha, 
@@ -55,8 +57,6 @@ def home():
         WHERE l.linha IS NOT NULL
         """
 
-        if turno:
-            query_lpas += f" AND LPA.turno = '{turno}'"
         if filtro_linha:
             query_lpas += f" AND l.id = {filtro_linha}"  
 
@@ -79,29 +79,46 @@ def home():
 
         conn.close()
 
-        linhas_com_status = []
-        for _, linha_row in df_linhas.iterrows():
-            linha_id = linha_row["id"]
-            linha_nome = linha_row["linha"]
+        turnos_para_mostrar = []
+        if not turno:
+            turnos_para_mostrar = ['Manhã', 'Tarde', 'Noite']
+        else:
+            turnos_para_mostrar = [turno]
 
-            lpa_info = next((lpa for lpa in lpas_result if lpa["linha_id"] == linha_id), None)
-
-            if lpa_info:
-                linhas_com_status.append({
-                    "id": linha_id,
-                    "linha": linha_nome,
-                    "lpa": lpa_info
-                })
+        linhas_com_estado = []
+        for linha_id, linha_nome in [(row["id"], row["linha"]) for _, row in df_linhas.iterrows()]:
+            if filtro_linha and str(linha_id) != str(filtro_linha):
+                continue
+                
+            linha_info = {
+                "id": linha_id,
+                "linha": linha_nome,
+                "lpas": []
+            }
+            
+            for t in turnos_para_mostrar:
+                lpa_info = next((lpa for lpa in lpas_result if lpa["linha_id"] == linha_id and (lpa["turno"] == t or lpa["turno"] is None)), None)
+                
+                lpa_obj = {
+                    "turno": t,
+                    "estado": "Realizado" if lpa_info and lpa_info["resposta"] else "Por Realizar",
+                    "auditor": lpa_info["auditor"] if lpa_info and lpa_info["auditor"] else "--",
+                    "data_auditoria": lpa_info["data_auditoria"] if lpa_info else None,
+                    "resposta": lpa_info["resposta"] if lpa_info else None
+                }
+                
+                linha_info["lpas"].append(lpa_obj)
+            
+            linhas_com_estado.append(linha_info)
 
         return render_template('home.html', 
-                               linhas=linhas_com_status,
+                               linhas=linhas_com_estado,
                                turno=turno,
                                filtro_linha=filtro_linha, 
-                               todas_linhas=df_linhas)  
+                               todas_linhas=todas_linhas)  
     except Exception as e:
         flash(f'Erro ao carregar LPAs: {str(e)}', 'error')
         return redirect(url_for('index'))
-
 @app.route('/login', methods=["POST"])
 def login():
     username = request.form['username']
@@ -139,8 +156,8 @@ def create_lpa():
     if 'user_id' not in session:
         return redirect(url_for('index'))
 
-    linha_id = request.args.get('linha_id')  # Obtém a linha
-    turno = request.args.get('turno', '')  # Obtém o turno passado na URL
+    linha_id = request.args.get('linha_id') 
+    turno = request.args.get('turno', '') 
 
     conn = get_db_connection()
     query = "SELECT DISTINCT linha FROM linhas WHERE linha IS NOT NULL"
@@ -163,7 +180,7 @@ def create_lpa():
         'create_lpa.html',
         linhas=linhas,
         linha_selecionada=linha_selecionada,
-        turno=turno  # Passa o turno para o template
+        turno=turno 
     )
 
 
@@ -593,6 +610,9 @@ def resolver_incidencia():
     except Exception as e:
         flash(f'Erro ao carregar a incidência: {str(e)}', 'error')
         return redirect(url_for('incidencias'))
+    
+    #########################  FIM 1º CAMADA #####################################
+
 
 
 if __name__ == "__main__":

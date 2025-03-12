@@ -14,6 +14,12 @@
             background-color: #f8f9fc;
             color: #333;
         }
+
+        @media (max-width: 768px) {
+            .title-lpa {
+                font-size: 16px;
+            }
+        }
         
         .sidebar {
         background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
@@ -77,19 +83,20 @@
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding: 1.25rem 1.5rem;
             font-weight: 600;
-            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
-        }
-        
-        .card-body {
-            padding: 1.5rem;
+            border-radius: 0.5rem;
         }
         
         .form-control {
             border-radius: 0.5rem;
-            padding: 0.2rem 1rem;
             border: 1px solid #e3e6f0;
             font-size: 1rem;
             transition: all 0.2s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .form-control {
+                font-size: 0.9rem; 
+            }
         }
         
         .form-control:focus {
@@ -109,9 +116,7 @@
             color: #6c757d !important;
         }
         
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
+ 
         
         .custom-control-label {
             font-weight: 500;
@@ -131,6 +136,41 @@
             text-transform: uppercase;
             font-size: 0.875rem;
             letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .btn-sm-mobile {
+                font-size: 0.75rem; 
+                padding: 0.3rem 0.6rem;
+            }
+        }
+        
+        .button-i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #4e73df;
+            border-radius: 6px;
+            background-color: transparent;
+            color: #4e73df;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 40%;
+            margin-top: -5px; 
+            transition: all 0.2s ease;
+            box-shadow: none;
+            outline: none;
+            position: relative; 
+            top: -3px; 
+        }
+        
+        .button-i:hover, .button-i:focus {
+            background-color: #4e73df;
+            color: white;
         }
         
         .btn-primary {
@@ -226,7 +266,16 @@
         }
 
         .selecao-linha h6 {
-            margin-top: -10%; /* Ajuste conforme necessário */
+            margin-top: -10%;
+        }
+
+        @media (max-width: 768px) {
+            .selecao-linha h6 {
+                font-size: 15px;
+                margin-top: 0;
         }
         
+    }
+        
+    
         
