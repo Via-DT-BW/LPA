@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 {% include 'components/head.html' %}
-
 {% block content %}
 <body id="page-top">
     <div id="content">
-        {% include '2_camada/components/navbar.html' %}
+        {% include 'components/navbar.html' %}
         <div class="container-fluid flex-grow-1">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h6 class="font-weight-bold text-primary mb-0">LPA 2ª Camada - Verificação</h6>
+                    <h6 class="font-weight-bold text-primary mb-0">LPA Diário</h6>
                 </div>
-                <form method="GET" action="{{ url_for('home2') }}">
+                <form method="GET" action="{{ url_for('home') }}">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
@@ -67,22 +66,23 @@
                                             {% endif %}
                                             <td>{{ lpa.turno }}</td>
                                             {% if lpa.estado == "Realizado" %}
-                                                <td><span class="badge badge-warning">2ª Camada Por Realizar</span></td>
+                                                <td><span class="badge badge-success">Realizado</span></td>
                                                 <td>{{ lpa.auditor }}</td>
                                                 <td>
-                                                    <a href="{{ url_for('create_lpa_2_layer', linha_id=linha.id, turno=lpa.turno) }}" 
-                                                       class="btn btn-primary btn-sm btn-sm-mobile">
-                                                        Realizar 2º Camada
-                                                    </a>
+                                                    <button class="btn btn-info btn-sm btn-sm-mobile" data-toggle="modal" data-target="#lpaModal" 
+                                                        onclick="verDetalhes('{{ linha.linha }}', '{{ lpa.data_auditoria }}', '{{ lpa.turno }}', '{{ lpa.auditor }}')">
+                                                        Ver Dados
+                                                    </button>
                                                 </td>
                                             {% else %}
-                                                <td><span class="badge badge-danger">1ª Camada Por Realizar</span></td>
+                                                <td><span class="badge badge-warning">Por Realizar</span></td>
                                                 <td>{{ lpa.auditor }}</td>
                                                 <td>
-                                                    <span class="font-weight-bold text-danger">
-                                                        Pendente Realização 1ª Camada
-                                                    </span>
-                                                </td>                                                    
+                                                    <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=lpa.turno) }}" 
+                                                       class="btn btn-primary btn-sm btn-sm-mobile">
+                                                        Realizar
+                                                    </a>
+                                                </td>                                                        
                                             {% endif %}
                                         </tr>
                                     {% endfor %}
@@ -91,49 +91,6 @@
                         </table>
                     </div>
                 </div>
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination pagination-responsive justify-content-center flex-wrap">
-                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                                <a class="page-link" href="?page={{ page-1 }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">
-                                    <span class="d-none d-sm-inline">Anterior</span>
-                                    <span class="d-inline d-sm-none">&laquo;</span>
-                                </a>
-                            </li>
-
-                            <li class="page-item {% if page == 1 %}active{% endif %}">
-                                <a class="page-link" href="?page=1&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">1</a>
-                            </li>
-
-                            {% if page > 4 %}
-                                <li class="page-item disabled"><span class="page-link">...</span></li>
-                            {% endif %}
-
-                            {% for p in range(2, total_pages + 1) %}
-                                {% if p > 1 and p < total_pages and (p >= page - 1 and p <= page + 1) or (p <= 5 and page <= 3) or (p >= total_pages - 4 and page >= total_pages - 2) %}
-                                    <li class="page-item {% if p == page %}active{% endif %}">
-                                        <a class="page-link" href="?page={{ p }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">{{ p }}</a>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if page < total_pages - 3 and total_pages > 5 %}
-                                <li class="page-item disabled"><span class="page-link">...</span></li>
-                            {% endif %}
-
-                            {% if total_pages > 1 %}
-                                <li class="page-item {% if page == total_pages %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ total_pages }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">{{ total_pages }}</a>
-                                </li>
-                            {% endif %}
-
-                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-                                <a class="page-link" href="?page={{ page+1 }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">
-                                    <span class="d-none d-sm-inline">Próximo</span>
-                                    <span class="d-inline d-sm-none">&raquo;</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
             </div>
         </div>
     </div> 
@@ -161,7 +118,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
-        {%include "js/2_camada/2_camada.js"%}
+        {%include "js/home/verLPA.js"%}
 
         {% if filtro_linha or turno %}
             toastr.success("Filtros aplicados com sucesso!", "Sucesso", {
@@ -169,6 +126,7 @@
         {% endif %}
     </script>
     
+
 </body>
 {% endblock %}
 </html>

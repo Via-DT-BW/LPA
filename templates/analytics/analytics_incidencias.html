@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+{% include 'components/head.html' %}
+<body id="page-top">
+    <div id="wrapper">
+        {% include 'components/navbar.html' %}
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                {% include 'components/topbar.html' %}
+                <div class="container-fluid">
+                    <!-- Page Heading -->
+                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                        <h1 class="h3 mb-0 text-gray-800">Análise de Incidências</h1>
+                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"
+                           onclick="exportarRelatorio()">
+                            <i class="fas fa-download fa-sm text-white-50"></i> Exportar Relatório
+                        </a>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="dataInicio">Data Início</label>
+                                        <input type="date" class="form-control" id="dataInicio">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="dataFim">Data Fim</label>
+                                        <input type="date" class="form-control" id="dataFim">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="linha">Linha</label>
+                                        <select class="form-control" id="linha">
+                                            <option value="">Todas</option>
+                                            <!-- Opções de linhas serão carregadas via JavaScript -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="categoria">Categoria</label>
+                                        <select class="form-control" id="categoria">
+                                            <option value="">Todas</option>
+                                            <!-- Opções de categorias serão carregadas via JavaScript -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 text-right">
+                                    <button class="btn btn-primary" onclick="aplicarFiltros()">
+                                        <i class="fas fa-filter mr-2"></i>Aplicar Filtros
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos de Incidências -->
+                    <div class="row">
+                        <!-- Tendência de Incidências -->
+                        <div class="col-xl-6">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Tendência de Incidências</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="tendenciaIncidenciasChart" style="height: 300px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Incidências por Linha -->
+                        <div class="col-xl-6">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Incidências por Linha</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="incidenciasPorLinhaChart" style="height: 300px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Incidências -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Lista de Incidências</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="incidenciasTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Data</th>
+                                            <th>Linha</th>
+                                            <th>Categoria</th>
+                                            <th>Descrição</th>
+                                            <th>Estado</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dados serão carregados via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% include 'components/footer.html' %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/analytics_incidencias.js') }}"></script>
+</body>
+</html>

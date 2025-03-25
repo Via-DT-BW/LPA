@@ -69,10 +69,14 @@
                                     <td>{{ incidencia.auditor }}</td>
                                     <td>{{ incidencia.prazo }}</td>
                                     <td>
-                                        {% if incidencia.resolvido %}
+                                        {% if incidencia.resolvido == 'True' %}
                                             <button class="btn btn-success btn-sm btn-sm-mobile" data-toggle="modal" data-target="#modalResolucao{{ incidencia.id }}">
                                                 <i class="fas fa-check"></i> Resolvido
                                             </button>
+                                        {% elif incidencia.resolvido == 'False' %}
+                                            <a href="{{ url_for('resolver_incidencia', id=incidencia.id) }}" class="btn btn-warning btn-sm btn-sm-mobile">
+                                                <i class="fas fa-clock"></i> Pendente
+                                            </a>
                                         {% else %}
                                             <a href="{{ url_for('resolver_incidencia', id=incidencia.id) }}" class="btn btn-primary btn-sm btn-sm-mobile">Resolver</a>
                                         {% endif %}
@@ -104,16 +108,24 @@
                 <div class="modal-body">
                     <h6><strong>Não Conformidade:</strong></h6>
                     <p>{{ incidencia.nao_conformidade }}</p>
-
+                
                     <h6><strong>Ação Corretiva:</strong></h6>
                     <p>{{ incidencia.acao_corretiva }}</p>
-
+                
                     <h6><strong>Estado:</strong></h6>
-                    <p>{{ 'Resolvido' if incidencia.resolvido else 'Pendente' }}</p>
-
-                    {% if incidencia.resolvido %}
-                        <h6><strong>Comentário da Resolução:</strong></h6>
-                        <p>{{ incidencia.comentario_resolucao }}</p>
+                    <p>
+                        {% if incidencia.resolvido == 'True' %}
+                            Resolvido e Verificado
+                        {% elif incidencia.resolvido == 'False' %}
+                            Resolução Pendente de Verificação
+                        {% else %}
+                            Pendente
+                        {% endif %}
+                    </p>
+                
+                    {% if incidencia.resolvido in ['True', 'False'] %}
+                        <h6><strong>Comentário:</strong></h6>
+                        <p class="whitespace-pre-line">{{ incidencia.comentario_resolucao }}</p>
                     {% endif %}
                 </div>
                 <div class="modal-footer">
@@ -122,20 +134,7 @@
             </div>
         </div>
     </div>
-{% endfor %}
-
-
-    <script>
-        $(document).ready(function() {
-            $('#incidenciasTable').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Portuguese.json"
-                },
-                "order": [[ 1, "desc" ]], 
-                "pageLength": 25
-            });
-        });
-    </script>
+    {% endfor %}
 
 </body>
 {% endblock %}

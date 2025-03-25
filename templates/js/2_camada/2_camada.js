@@ -1,3 +1,4 @@
+// Function to view LPA details in modal
 function verDetalhes(linha, dataAuditoria, turno, auditor) {
     fetch("/get_lpa_details", {
         method: "POST",
@@ -69,6 +70,9 @@ function verDetalhes(linha, dataAuditoria, turno, auditor) {
             tableContent += `</tbody></table>`;
             modalBody.innerHTML += tableContent;
         }
+        
+        // Show the modal
+        $('#lpaModal').modal('show');
     })
     .catch(error => {
         console.error('Erro ao carregar detalhes do LPA:', error);
@@ -81,7 +85,14 @@ function verDetalhes(linha, dataAuditoria, turno, auditor) {
                 </div>
             `;
         }
+        // Show the modal even if there's an error
+        $('#lpaModal').modal('show');
     });
+}
+
+// Function to redirect to create 2nd layer LPA page
+function realizar2Camada(linhaId, turno) {
+    window.location.href = `/lpa/2camada/${linhaId}/${turno}`;
 }
 
 // Função auxiliar para formatar a data
@@ -99,3 +110,17 @@ function formatarData(dataString) {
         return dataString;
     }
 }
+
+// Initialize tooltips and popovers
+$(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="popover"]').popover();
+    
+    // Add click handlers for the realizar2Camada buttons
+    $('.btn-realizar-2camada').on('click', function(e) {
+        e.preventDefault();
+        const linhaId = $(this).data('linha-id');
+        const turno = $(this).data('turno');
+        realizar2Camada(linhaId, turno);
+    });
+});

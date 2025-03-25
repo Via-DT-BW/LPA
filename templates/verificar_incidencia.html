@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
-{% include 'components/head.html' %}
+<html lang="en">
+    {% include 'components/head.html' %}
 {% block content %}
 <body id="page-top">
-    {% include 'components/navbar.html' %}
     <div id="content">
+        {% include 'components/navbar.html' %}
         <div class="container-fluid">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="font-weight-bold text-primary mb-0">Resolver Incidência</h6>
+                    <h6 class="font-weight-bold text-warning mb-0">Verificar Resolução</h6>
                     <a href="{{ url_for('incidencias') }}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </a>
@@ -63,20 +63,27 @@
                         </div>
                     </div>
                     
-                    <form id="resolverForm">
+                    <div class="card mb-4 border-left-info">
+                        <div class="card-body">
+                            <h5 class="text-info font-weight-bold">Comentário de Resolução</h5>
+                            <p>{{ incidencia.comentario_resolucao }}</p>
+                        </div>
+                    </div>
+                    
+                    <form id="verificarForm">
                         <div class="card mb-4 border-left-success">
                             <div class="card-body">
                                 <div class="form-group">
-                                    <label for="comentario"><strong>Comentário de Resolução</strong></label>
-                                    <textarea class="form-control" id="comentario" name="comentario" rows="4" placeholder="Descreva como o problema foi resolvido..." required></textarea>
-                                    <small class="form-text text-muted">Descreva as ações tomadas para resolver esta não conformidade.</small>
+                                    <label for="id_colaborador"><strong>Confirmar Resolução</strong></label>
+                                    <input type="text" class="form-control" id="id_colaborador" name="id_colaborador" required>
+                                    <small class="form-text text-muted">Insira o número de colaborador para validar esta resolução.</small>
                                 </div>
                             </div>
                         </div>
                     
                         <div class="form-group text-center">
                             <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fas fa-check"></i> Confirmar Resolução
+                                <i class="fas fa-check"></i> Confirmar Verificação
                             </button>
                             <a href="{{ url_for('incidencias') }}" class="btn btn-secondary btn-lg">
                                 <i class="fas fa-times"></i> Cancelar
@@ -87,103 +94,37 @@
                 </div>
             </div>
         </div>
+        <script>
+            $(document).ready(function() {
+                $("#verificarForm").submit(function(event) {
+                    event.preventDefault(); 
+            
+                    var formData = $(this).serialize();
+            
+                    $.ajax({
+                        type: "POST",
+                        url: "{{ url_for('resolver_incidencia', id=incidencia.id) }}",
+                        data: formData,
+                        dataType: "json",
+                        success: function(response) {
+                            toastr.success("Verificação concluída com sucesso!");
+                            setTimeout(function() {
+                                window.location.href = "{{ url_for('incidencias') }}"; 
+                            }, 2000); 
+                        },
+                        error: function(xhr) {
+                            var errorMsg = "Erro ao verificar a resolução. Tente novamente!";
+                            if (xhr.responseJSON && xhr.responseJSON.error) {
+                                errorMsg = xhr.responseJSON.error;
+                            }
+                            toastr.error(errorMsg);
+                        }
+                    });
+                });
+            });        
+        </script>
         {% include 'components/footer.html' %}
     </div>
-
-    <style>
-        /* Ajustes responsivos */
-        @media (max-width: 768px) {
-            .card-header h6 {
-                font-size: 1.1rem;
-            }
-            h5 {
-                font-size: 1.2rem;
-            }
-            .table th {
-                font-size: 1rem;
-            }
-            .table td {
-                font-size: 1rem;
-            }
-            .btn-lg {
-                font-size: 1rem;
-                padding: 10px;
-            }
-            .form-group label {
-                font-size: 1rem;
-            }
-            .table-responsive {
-                margin-bottom: 1rem;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .card-header h6 {
-                font-size: 1rem;
-            }
-            h5 {
-                font-size: 1.1rem;
-            }
-            .table th {
-                font-size: 0.9rem;
-            }
-            .table td {
-                font-size: 0.9rem;
-            }
-            .btn-lg {
-                font-size: 0.9rem;
-                padding: 8px;
-                margin-top: 1rem;
-
-            }
-            .form-group label {
-                font-size: 0.9rem;
-            }
-        }
-
-        /* Garante que a tabela não quebre no celular */
-        .table-responsive {
-            -webkit-overflow-scrolling: touch;
-            overflow-x: auto;
-            margin-bottom: 1.5rem;
-        }
-
-        .text-nowrap {
-            white-space: nowrap;
-        }
-    </style>
-    <script>
-        $(document).ready(function() {
-            $("#resolverForm").submit(function(event) {
-                event.preventDefault(); 
-        
-                var formData = $(this).serialize();
-        
-                $.ajax({
-                    type: "POST",
-                    url: "{{ url_for('resolver_incidencia', id=incidencia.id) }}",
-                    data: formData,
-                    dataType: "json",
-                    success: function(response) {
-        
-                        setTimeout(function() {
-                            window.location.href = "{{ url_for('incidencias') }}"; 
-                        }, 2000); 
-                    },
-                    error: function(xhr) {
-                        var errorMsg = "Erro ao resolver a incidência. Tente novamente!";
-                        if (xhr.responseJSON && xhr.responseJSON.error) {
-                            errorMsg = xhr.responseJSON.error;
-                        }
-                        toastr.error(errorMsg);
-                    }
-                });
-            });
-        });        
-    </script>
-    
-    
 </body>
-
 {% endblock %}
 </html>

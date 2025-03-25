@@ -9,7 +9,7 @@ function salvarLPA(event) {
     var hasValidationError = false;
 
     if (!selectedLine || !turno || !registoPeca) {
-        toastr.error("Por favor, preencha todos os campos obrigatórios antes de salvar.");
+        toastr.error("Por favor, preencha todos os campos obrigatórios antes de submeter.");
         return;
     }
 
@@ -34,6 +34,20 @@ function salvarLPA(event) {
                     return;
                 }
 
+                let ano = new Date(prazoInput).getFullYear().toString();
+                if (!/^\d{4}$/.test(ano)) {
+                    toastr.error(`O ano do prazo na pergunta ${index + 1} deve ter 4 dígitos.`);
+                    hasValidationError = true;
+                    return;
+                }
+
+                let anoNum = parseInt(ano, 10);
+                if (anoNum < 2000 || anoNum > 2099) {
+                    toastr.error(`O ano do prazo na pergunta ${index + 1} deve estar entre 2000 e 2099.`);
+                    hasValidationError = true;
+                    return;
+                }
+
                 respostaObj.nao_conformidade = naoConformidade;
                 respostaObj.acao_corretiva = acaoCorretiva;
                 respostaObj.prazo = formatarDataPrazo(prazoInput);
@@ -52,16 +66,13 @@ function salvarLPA(event) {
         return;
     }
 
-    // 🟢 Exibir Toastr de carregamento
-    var loadingToast = toastr.info("Salvando LPA...", {
-        timeOut: 0, // Não fecha automaticamente
+    var loadingToast = toastr.info("A submeter LPA...", {
+        timeOut: 0, 
         extendedTimeOut: 0,
         tapToDismiss: false,
         closeButton: false,
         progressBar: true
     });
-
-    console.log("Respostas capturadas:", respostas.length);
 
     fetch("/save_lpa", {
         method: "POST",
@@ -78,14 +89,13 @@ function salvarLPA(event) {
     })
     .then(response => response.json())
     .then(data => {
-        toastr.clear(loadingToast); // Remover Toastr de carregamento
+        toastr.clear(loadingToast);
 
         if (data.success) {
             toastr.success("LPA guardado com sucesso!");
 
-            // 🔹 Pequeno delay antes de recarregar a página (para o toastr ser visto)
             setTimeout(() => {
-                location.reload();
+                window.location.href = "/home"; 
             }, 1500);
         } else {
             toastr.error("Erro ao guardar LPA: " + data.error);
@@ -93,7 +103,6 @@ function salvarLPA(event) {
     })
     .catch(error => {
         toastr.clear(loadingToast);
-        console.error("Erro ao guardar LPA:", error);
         toastr.error("Erro ao guardar. Tente novamente.");
     });
 }

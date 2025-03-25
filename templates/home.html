@@ -91,6 +91,49 @@
                         </table>
                     </div>
                 </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-responsive justify-content-center flex-wrap">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="?page={{ page-1 }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">
+                                    <span class="d-none d-sm-inline">Anterior</span>
+                                    <span class="d-inline d-sm-none">&laquo;</span>
+                                </a>
+                            </li>
+
+                            <li class="page-item {% if page == 1 %}active{% endif %}">
+                                <a class="page-link" href="?page=1&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">1</a>
+                            </li>
+
+                            {% if page > 4 %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+
+                            {% for p in range(2, total_pages + 1) %}
+                                {% if p > 1 and p < total_pages and (p >= page - 1 and p <= page + 1) or (p <= 5 and page <= 3) or (p >= total_pages - 4 and page >= total_pages - 2) %}
+                                    <li class="page-item {% if p == page %}active{% endif %}">
+                                        <a class="page-link" href="?page={{ p }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">{{ p }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page < total_pages - 3 and total_pages > 5 %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+
+                            {% if total_pages > 1 %}
+                                <li class="page-item {% if page == total_pages %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ total_pages }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">{{ total_pages }}</a>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="?page={{ page+1 }}&page_size=10&linha={{ filtro_linha }}&turno={{ turno }}">
+                                    <span class="d-none d-sm-inline">Próximo</span>
+                                    <span class="d-inline d-sm-none">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
             </div>
         </div>
     </div> 
@@ -118,6 +161,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
+        {%include "js/home/verLPA.js"%}
+
         {% if filtro_linha or turno %}
             toastr.success("Filtros aplicados com sucesso!", "Sucesso", {
             });

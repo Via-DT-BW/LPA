@@ -20,29 +20,29 @@
         
             <hr class="sidebar-divider">
             
-            <li class="nav-item {% if request.path == '/home' %}active{% endif %}">
-                <a class="nav-link" href="/home">
-                    <i class="fas fa-clipboard-check mr-2"></i>
-                    <span>LPA Diário</span>
+            <li class="nav-item {% if request.path == '#' %}active{% endif %}">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    <span>Dashboard</span>
                 </a>
             </li>
         
-            <li class="nav-item active">
-                <a class="nav-link" href="/lpa_segunda_camada">
-                    <i class="fas fa-layer-group mr-2"></i>
-                    <span>LPA 2ª Camada</span>
+            <li class="nav-item {% if request.path == '#' %}active{% endif %}">
+                <a class="nav-link" href="#">
+                    <i class="fa-solid fa-bars-progress mr-2"></i>
+                    <span>LPA Overview</span>
                 </a>
             </li>
             
-            <li class="nav-item {% if request.path == '/lpa_check' %}active{% endif %}">
-                <a class="nav-link" href="/lpa_check">
+            <li class="nav-item {% if request.path == '#' %}active{% endif %}">
+                <a class="nav-link" href="#">
                     <i class="fas fa-search mr-2"></i>
                     <span>Consultar LPA</span>
                 </a>
             </li>
 
-            <li class="nav-item {% if request.path == '/incidencias' %}active{% endif %}">
-                <a class="nav-link" href="/incidencias">
+            <li class="nav-item {% if request.path == '#' %}active{% endif %}">
+                <a class="nav-link" href="#">
                     <i class="fas fa-exclamation-triangle mr-2"></i>
                     <span>Incidências</span>
                 </a>
@@ -62,7 +62,7 @@
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
                     </button>
-                    <h4 class="text-white font-weight-bold mb-0 ml-md-4 title-lpa">Layered Process Audit - 2ª Camada</h4>
+                    <h4 class="text-white font-weight-bold mb-0 ml-md-4 title-lpa">Analytics</h4>
                     <ul class="navbar-nav ml-auto">
                         <div class="topbar-divider d-none d-sm-block"></div>
                         <li class="nav-item dropdown no-arrow">

@@ -24,27 +24,18 @@ function realizarLPA() {
                 .then(data => {
                     var lpaItemsContainer = document.getElementById("lpa-items");
                     lpaItemsContainer.innerHTML = "";
+
                     if (!data.length) {
                         toastr.error("Nenhuma pergunta encontrada para esta linha de produção.", "Erro");
                         return;
                     }
-
-                    const objetivos = [
-                        "Segregar peças NOK através do anti-erro evitando que transitem para o processo seguinte.",
-                        "Garantir o correto funcionamento das máquinas e evitar paragens não programadas.",
-                        "Garantir a correta validação do arranque, respeitando os requisitos standard da fábrica.",
-                        "Criar condições de trabalho em segurança e qualidade.",
-                        "Garantir que as peças NOK não seguem para o processo seguinte ou cliente.",
-                        "Detetar problemas de eficiência da linha.",
-                        "Garantir a entrega de peças de acordo com os requisitos de cliente."
-                    ];
 
                     data.forEach((item, index) => {
                         lpaItemsContainer.innerHTML += `
                             <div class="form-group">
                                 <label>${index + 1} - ${item.pergunta}</label>
                                 <small class="form-text text-muted mt-2">
-                                    OBJETIVO: ${objetivos[index]}
+                                    OBJETIVO: ${item.objetivo || "Não definido"}
                                 </small>
                                 <div class="radio-group mt-2">
                                     <div class="custom-control custom-radio custom-control-inline">
