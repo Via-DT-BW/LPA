@@ -20,31 +20,31 @@
         
             <hr class="sidebar-divider">
             
-            <li class="nav-item {% if request.path == '/analytics' %}active{% endif %}">
-                <a class="nav-link" href="/analytics">
-                    <i class="fas fa-chart-line mr-2"></i>
-                    <span>Dashboard</span>
+            <li class="nav-item {% if request.path == '/home' %}active{% endif %}">
+                <a class="nav-link" href="/home">
+                    <i class="fas fa-clipboard-check mr-2"></i>
+                    <span>Perfis e Roles</span>
                 </a>
             </li>
-            
-            <li class="nav-item {% if request.path == '/overview' %}active{% endif %}">
-                <a class="nav-link" href="#">
-                    <i class="fas fa-th-large mr-2"></i> 
-                    <span>Overview LPA</span>
-                </a>
-            </li>
-            
-            <li class="nav-item {% if request.path == '/consultar-lpa' %}active{% endif %}">
-                <a class="nav-link" href="#">
-                    <i class="fas fa-file-alt mr-2"></i> 
-                    <span>Consultar LPA</span>
+ 
+            <li class="nav-item {% if request.path == '/create_lpa' %}active{% endif %}">
+                <a class="nav-link" href="/create_lpa">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>Definir other checks</span>
                 </a>
             </li>
 
-            <li class="nav-item {% if request.path == '/analytics/incidencias' %}active{% endif %}">
-                <a class="nav-link" href="/analytics/incidencias">
-                    <i class="fas fa-exchange-alt mr-2"></i> 
-                    <span>Comparação de Incidências</span>
+            <li class="nav-item {% if request.path == '/lpa_check' %}active{% endif %}">
+                <a class="nav-link" href="/lpa_check">
+                    <i class="fas fa-search mr-2"></i>
+                    <span>Perguntas</span>
+                </a>
+            </li>
+
+            <li class="nav-item {% if request.path == '/incidencias' %}active{% endif %}">
+                <a class="nav-link" href="/incidencias">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span>Incidências</span>
                 </a>
             </li>
         
@@ -62,23 +62,27 @@
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
                     </button>
-                    <h4 class="text-white font-weight-bold mb-0 ml-md-4 title-lpa">Analytics</h4>
+                    <h4 class="text-white font-weight-bold mb-0 ml-md-4 title-lpa">Layered Process Audit - 1ª Camada</h4>
                     <ul class="navbar-nav ml-auto">
                         <div class="topbar-divider d-none d-sm-block"></div>
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span class="mr-2 d-none d-lg-inline small text-white font-weight-bold">
-                                    {{ session['username'] }}
+                                    {{ session['name'] }}
                                 </span>
                                 <img class="img-profile rounded-circle" src="static/images/undraw_profile.svg">
                             </a>
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="userDropdown">
                                 <h6 class="dropdown-header text-center">
-                                    {{ session['username'] }}
+                                    {{ session['name'] }}
                                 </h6>
                                 <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="/">
+                                    <i class="fas fa-key fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Alterar Password
+                                </a>
                                 <a class="dropdown-item" href="/">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Logout

@@ -5,42 +5,28 @@
 {% block content %}
 <body id="page-top">
     <div id="content">
-        {% include 'components/navbar.html' %}
+        {% include '2_camada/components/navbar.html' %}
         <div class="container-fluid flex-grow-1">
             <div class="card shadow">
                 <div class="card-header py-3">
                     <h6 class="font-weight-bold text-primary mb-0">Incidências NOK por Linha</h6>
                 </div>
-                <form method="GET" action="{{ url_for('incidencias') }}">
+                <form method="GET" action="{{ url_for('incidencias2') }}">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="turno">Filtrar por Turno</label>
-                                    <select name="turno" id="turno" class="form-control">
-                                        <option value="">Todos os Turnos</option>
-                                        <option value="Manhã" {% if turno == 'Manhã' %}selected{% endif %}>A (Manhã)</option>
-                                        <option value="Tarde" {% if turno == 'Tarde' %}selected{% endif %}>B (Tarde)</option>
-                                        <option value="Noite" {% if turno == 'Noite' %}selected{% endif %}>C (Noite)</option>
-                                        <option value="Intermédio" {% if turno == 'Intermédio' %}selected{% endif %}>D (Intermédio)</option>
-                                        <option value="4º Turno" {% if turno == '4º Turno' %}selected{% endif %}>E (4º Turno)</option>
-                                        <option value="5º Turno" {% if turno == '5º Turno' %}selected{% endif %}>F (5º Turno)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="data_inicio">Data Início</label>
                                     <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ data_inicio }}">
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="data_fim">Data Fim</label>
                                     <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ data_fim }}">
                                 </div>
                             </div>
-                            <div class="col-md-2 d-flex align-items-end">
+                            <div class="col-md-4 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary btn-block mb-3">Filtrar</button>
                             </div>
                         </div>

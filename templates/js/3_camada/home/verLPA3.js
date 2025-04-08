@@ -1,24 +1,22 @@
-// Function to view LPA details in modal
-function verDetalhes(linha, dataAuditoria, turno, auditor) {
-    fetch("/get_lpa_details", {
+function verDetalhes3(linha, dataAuditoria, auditor) {
+    fetch("/get_lpa_details3", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             "linha": linha,
-            "data_auditoria": dataAuditoria,
-            "turno": turno
+            "data_auditoria": dataAuditoria
         })
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Resposta da API:", data);
-        var modalBody = document.getElementById('modalBody');
+
+        var modalBody = document.getElementById('modalBody3');
         if (!modalBody) {
-            console.error('Elemento modalBody não encontrado.');
+            console.error('Elemento modalBody3 não encontrado.');
             return;
         }
         modalBody.innerHTML = '';
-        
+
         let headerInfo = `
             <div class="audit-info-header mb-4">
                 <div class="card border-primary">
@@ -29,7 +27,6 @@ function verDetalhes(linha, dataAuditoria, turno, auditor) {
                                 <p class="mb-1"><strong><i class="fas fa-calendar-alt mr-2"></i> Data:</strong> ${formatarData(dataAuditoria)}</p>
                             </div>
                             <div class="col-md-6">
-                                <p class="mb-1"><strong><i class="fas fa-clock mr-2"></i> Turno:</strong> ${turno}</p>
                                 <p class="mb-1"><strong><i class="fas fa-user mr-2"></i> Auditor:</strong> ${auditor}</p>
                             </div>
                         </div>
@@ -37,10 +34,11 @@ function verDetalhes(linha, dataAuditoria, turno, auditor) {
                 </div>
             </div>
         `;
-        
+
         modalBody.innerHTML = headerInfo;
-        
-        if (data.length === 0) {
+
+        // Verificar se a resposta é um array
+        if (!Array.isArray(data) || data.length === 0) {
             modalBody.innerHTML += '<p class="text-muted text-center">Nenhum detalhe encontrado.</p>';
         } else {
             let tableContent = `
@@ -53,10 +51,11 @@ function verDetalhes(linha, dataAuditoria, turno, auditor) {
                     </thead>
                     <tbody>
             `;
-            
+
+            // Se a resposta for um array, processamos os dados
             data.forEach(item => {
                 let responseClass = item.resposta === 'OK' ? 'status-ok' : 'status-nok';
-                
+
                 tableContent += `
                     <tr>
                         <td>${item.pergunta}</td>
@@ -66,37 +65,28 @@ function verDetalhes(linha, dataAuditoria, turno, auditor) {
                     </tr>
                 `;
             });
-            
+
             tableContent += `</tbody></table>`;
             modalBody.innerHTML += tableContent;
         }
-        
-        // Show the modal
-        $('#lpaModal').modal('show');
     })
     .catch(error => {
-        console.error('Erro ao carregar detalhes do LPA:', error);
-        var modalBody = document.getElementById('modalBody');
+        console.error('Erro ao carregar detalhes do LPA 3ª Camada:', error);
+        var modalBody = document.getElementById('modalBody3');
         if (modalBody) {
             modalBody.innerHTML = `
                 <div class="alert alert-danger text-center" role="alert">
                     <i class="fas fa-exclamation-triangle mr-2"></i>
-                    Erro ao carregar os detalhes do LPA. Por favor, tente novamente.
+                    Erro ao carregar os detalhes do LPA 3ª Camada. Por favor, tente novamente.
                 </div>
             `;
         }
-        // Show the modal even if there's an error
-        $('#lpaModal').modal('show');
     });
-}
-
-// Function to redirect to create 2nd layer LPA page
-function realizar2Camada(linhaId, turno) {
-    window.location.href = `/lpa/2camada/${linhaId}/${turno}`;
 }
 
 // Função auxiliar para formatar a data
 function formatarData(dataString) {
+    if (!dataString) return '-';
     try {
         const data = new Date(dataString);
         return data.toLocaleString('pt-PT', { 
@@ -107,20 +97,7 @@ function formatarData(dataString) {
             minute: '2-digit'
         });
     } catch (e) {
+        console.error("Erro ao formatar data:", e);
         return dataString;
     }
 }
-
-// Initialize tooltips and popovers
-$(document).ready(function() {
-    $('[data-toggle="tooltip"]').tooltip();
-    $('[data-toggle="popover"]').popover();
-    
-    // Add click handlers for the realizar2Camada buttons
-    $('.btn-realizar-2camada').on('click', function(e) {
-        e.preventDefault();
-        const linhaId = $(this).data('linha-id');
-        const turno = $(this).data('turno');
-        realizar2Camada(linhaId, turno);
-    });
-});

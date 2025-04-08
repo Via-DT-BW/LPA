@@ -26,14 +26,16 @@
                     <span>LPA Diário</span>
                 </a>
             </li>
-        
+ 
+                    <!-- USAR APENAS SE VALER A PENA
             <li class="nav-item {% if request.path == '/create_lpa' %}active{% endif %}">
                 <a class="nav-link" href="/create_lpa">
                     <i class="fas fa-check-circle mr-2"></i>
                     <span>Realizar LPA</span>
                 </a>
             </li>
-            
+            -->
+
             <li class="nav-item {% if request.path == '/lpa_check' %}active{% endif %}">
                 <a class="nav-link" href="/lpa_check">
                     <i class="fas fa-search mr-2"></i>
@@ -69,16 +71,20 @@
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span class="mr-2 d-none d-lg-inline small text-white font-weight-bold">
-                                    {{ session['username'] }}
+                                    {{ session['name'] }}
                                 </span>
                                 <img class="img-profile rounded-circle" src="static/images/undraw_profile.svg">
                             </a>
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="userDropdown">
                                 <h6 class="dropdown-header text-center">
-                                    {{ session['username'] }}
+                                    {{ session['name'] }}
                                 </h6>
                                 <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="/">
+                                    <i class="fas fa-key fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Alterar Password
+                                </a>
                                 <a class="dropdown-item" href="/">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Logout

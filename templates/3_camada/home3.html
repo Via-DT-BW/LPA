@@ -4,14 +4,14 @@
 {% block content %}
 <body id="page-top">
     <div id="content">
-        {% include '2_camada/components/navbar.html' %}
+        {% include '3_camada/components/navbar.html' %}
         <div class="container-fluid flex-grow-1">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h6 class="font-weight-bold text-primary mb-0">LPA 2ª Camada - Verificação</h6>
+                    <h6 class="font-weight-bold text-primary mb-0">LPA 3ª Camada - Verificação</h6>
                 </div>
 
-                <form method="GET" action="{{ url_for('home2') }}">
+                <form method="GET" action="{{ url_for('home3') }}">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
@@ -48,30 +48,28 @@
                             </thead>
                             <tbody>
                                 {% for linha in linhas %}
-                                    {% for lpa_2 in linha.lpas %}
+                                    {% for lpa_3 in linha.lpas %}
                                         <tr {% if loop.first %}class="border-top-0"{% endif %}>
                                             {% if loop.first %}
                                                 <td rowspan="{{ linha.lpas|length }}" class="align-middle">{{ linha.linha }}</td>
                                             {% endif %}
-                                            <td>
-                                                {{ lpa_2.data_auditoria.strftime('%d-%m-%Y %H:%M') if lpa_2.data_auditoria else 'Ainda não realizado' }}
-                                              </td>
-                                                {% if lpa_2.estado == "Realizado" %}
+                                            <td> {{ lpa_3.data_auditoria.strftime('%d-%m-%Y %H:%M') if lpa_3.data_auditoria else 'Ainda não realizado' }}                                            </td>
+                                            {% if lpa_3.estado == "Realizado" %}
                                                 <td><span class="badge badge-success">Realizado</span></td>
-                                                <td>{{ lpa_2.auditor }}</td>
+                                                <td>{{ lpa_3.auditor }}</td>
                                                 <td>
                                                     <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#lpaModal" 
-                                                        onclick="verDetalhes2('{{ linha.linha }}', '{{ lpa_2.data_auditoria }}', '{{ lpa_2.auditor }}')">
+                                                        onclick="verDetalhes3('{{ linha.linha }}', '{{ lpa_3.data_auditoria }}', '{{ lpa_3.auditor }}')">
                                                         Ver Dados
                                                     </button>
                                                 </td>
                                             {% else %}
                                                 <td><span class="badge badge-warning">Por Realizar</span></td>
-                                                <td>{{ lpa_2.auditor }}</td>
+                                                <td>{{ lpa_3.auditor }}</td>
                                                 <td>
-                                                    <a href="{{ url_for('create_lpa2', linha_id=linha.id) }}" 
+                                                    <a href="{{ url_for('create_lpa3', linha_id=linha.id) }}" 
                                                        class="btn btn-primary btn-sm">
-                                                        Realizar 2ª Camada
+                                                        Realizar 3ª Camada
                                                     </a>
                                                 </td>                                                        
                                             {% endif %}
@@ -118,12 +116,12 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Detalhes da 2ª Camada</h5>
+                    <h5 class="modal-title" id="modalTitle">Detalhes da 3ª Camada</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body" id="modalBody2">
+                <div class="modal-body" id="modalBody3">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
@@ -136,8 +134,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
-        {% include "js/2_camada/home/home2.js" %}
-        {% include "js/2_camada/home/verLPA2.js" %}
+        {% include "js/3_camada/home/home3.js" %}
+        {% include "js/3_camada/home/verLPA3.js" %}
 
         {% if filtro_linha or filtro_data %}
             toastr.success("Filtros aplicados com sucesso!", "Sucesso");

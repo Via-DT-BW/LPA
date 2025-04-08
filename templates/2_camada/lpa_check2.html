@@ -5,7 +5,7 @@
 {% block content %}
 <body id="page-top">
     <div id="content">
-        {% include 'components/navbar.html' %}
+        {% include '2_camada/components/navbar.html' %}
         <div class="container-fluid">
             <div class="card shadow">
                 <div class="card-header py-3">
@@ -38,8 +38,8 @@
                                 </div>
                             </div>
                             <div class="form-group col-md-3">
-                            <button type="button" class="btn btn-primary mt-4 ml-4" id="apply-filters">Aplicar Filtros</button>
-                        </div>
+                                <button type="button" class="btn btn-primary mt-4 ml-4" id="apply-filters">Aplicar Filtros</button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -52,19 +52,19 @@
         </div>
     </div>
 
-        {% include 'components/footer.html' %}
+    {% include 'components/footer.html' %}
     </div>
 
     <div class="modal fade" id="lpaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Detalhes do LPA</h5>
+                    <h5 class="modal-title" id="modalTitle">Detalhes da 2ª Camada</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body" id="modalBody">
+                <div class="modal-body" id="modalBody2">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
@@ -73,28 +73,12 @@
         </div>
     </div>
 
-    <div class="modal fade" id="incidenciaModal" tabindex="-1" aria-labelledby="incidenciaModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="incidenciaModalLabel">Detalhes da Incidência</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body" id="incidenciaModalBody">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
+    <!-- JS Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js" defer></script>
     <script>
-        {% include "js/1_camada/lpa_check/consultarLPA.js" %}
+        {% include "js/2_camada/lpa_check2/consultarLPA2.js" %}
     </script>    
 {% endblock %}
 </body>

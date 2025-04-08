@@ -15,16 +15,16 @@
                 </div>
 
                 <div class="row">
-                    <!-- LPAs Realizados -->
+                    <!-- Total de LPAs -->
                     <div class="col-xl-3 col-md-6 mb-4">
                         <div class="card border-left-primary shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            LPAs Realizados (Mês)
+                                            Total de LPAs
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="lpa-count">—</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-lpa-count">—</div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
@@ -34,19 +34,38 @@
                         </div>
                     </div>
 
-                    <!-- Taxa de Conformidade -->
+                    <!-- LPAs OK -->
                     <div class="col-xl-3 col-md-6 mb-4">
                         <div class="card border-left-success shadow h-100 py-2">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                            Taxa de Conformidade
+                                            Respostas OK
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="compliance-rate">—%</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="ok-count">—</div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LPAs NOK -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-danger shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                            Respostas NOK
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="nok-count">—</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-times-circle fa-2x text-gray-300"></i>
                                     </div>
                                 </div>
                             </div>
@@ -71,69 +90,35 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Tempo Médio Resolução -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-info shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                            Tempo Médio Resolução
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="resolution-time">— dias</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Gráficos -->
                 <div class="row">
-                    <!-- Gráfico de LPAs Realizados por Linha -->
-                    <div class="col-xl-8 col-lg-7">
+                    <!-- Gráfico de Comparação de LPAs -->
+                    <div class="col-xl-6 col-lg-6">
                         <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                <h6 class="m-0 font-weight-bold text-primary">LPAs Realizados por Linha</h6>
-                                <div class="dropdown no-arrow">
-                                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                                       data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                                    </a>
-                                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                         aria-labelledby="dropdownMenuLink">
-                                        <div class="dropdown-header">Opções:</div>
-                                        <a class="dropdown-item" href="#" onclick="mudarPeriodo('semana')">Última Semana</a>
-                                        <a class="dropdown-item" href="#" onclick="mudarPeriodo('mes')">Último Mês</a>
-                                        <a class="dropdown-item" href="#" onclick="mudarPeriodo('trimestre')">Último Trimestre</a>
-                                    </div>
-                                </div>
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">Comparação de LPAs</h6>
                             </div>
                             <div class="card-body">
                                 <div class="chart-area">
-                                    <div id="lpaPorLinhaChart" style="height: 300px;"></div>
+                                    <div id="lpaComparisonChart" style="height: 300px;"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Gráfico de Incidências por Categoria -->
-                    <div class="col-xl-4 col-lg-5">
+                
+                    <!-- Gráfico de Pizza -->
+                    <div class="col-xl-6 col-lg-6">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">Incidências por Categoria</h6>
+                                <h6 class="m-0 font-weight-bold text-primary">Distribuição de Respostas</h6>
                             </div>
                             <div class="card-body">
-                                <div class="chart-pie">
-                                    <div id="incidenciasPorCategoriaChart" style="height: 300px;"></div>
-                                </div>
+                                <div id="lpaPieChart" style="height: 320px;"></div>
                             </div>
                         </div>
                     </div>
+                </div>                
                 </div>
             </div>
         </div>
@@ -142,6 +127,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>

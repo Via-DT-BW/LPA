@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-{% include 'components/head.html' %}
+{% include '3_camada/components/head.html' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
 {% block content %}
 <body id="page-top">
     <div id="content">
-        {% include 'components/navbar.html' %}
+        {% include '3_camada/components/navbar.html' %}
         <div class="container-fluid">
             <div class="card shadow">
                 <div class="card-header py-3">
@@ -22,7 +22,7 @@
                                 <form id="lpa-form" class="form-row">
                                     <div class="form-group col-md-12 col-sm-12 col-12 mb-0">
                                         <small class="form-text text-muted mb-2">Escolha a linha para realizar a auditoria</small>
-                                        <select name="filter_prod_line" id="filter_prod_line" class="form-control" onchange="realizarLPA()">
+                                        <select name="filter_prod_line" id="filter_prod_line" class="form-control" onchange="realizarLPA2()">
                                             <option value="">Selecione a linha</option>
                                             {% for line in linhas %}
                                                 <option value="{{ line }}" {% if line == linha_selecionada %}selected{% endif %}>{{ line }}</option>
@@ -91,44 +91,22 @@
                                             <input type="text" class="form-control bg-light" id="dataAtual" readonly>
                                         </div>
                                     </div>
+                
                                     <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label><i class="fas fa-users mr-1"></i> Turno</label>
-                                            <select class="form-control" id="turno">
-                                                <option value="">Selecione o turno</option>
-                                                <option value="Manhã" {% if turno == "Manhã" %}selected{% endif %}>A (Manhã)</option>
-                                                <option value="Tarde" {% if turno == "Tarde" %}selected{% endif %}>B (Tarde)</option>
-                                                <option value="Noite" {% if turno == "Noite" %}selected{% endif %}>C (Noite)</option>
-                                                <option value="Intermédio" {% if turno == "Intermédio" %}selected{% endif %}>D (Intermédio)</option>
-                                                <option value="4º Turno" {% if turno == "4º Turno" %}selected{% endif %}>E (4º Turno)</option>
-                                                <option value="5º Turno" {% if turno == "5º Turno" %}selected{% endif %}>F (5º Turno)</option>
-                                            </select>
-                                            
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label><i class="fas fa-id-card mr-1"></i> Número de Colaborador</label>
-                                            <input type="text" class="form-control bg-light" id="Nr_colaborador" readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label><i class="fas fa-barcode mr-1"></i> Últimos 4 números da peça em execução</label>
-                                            <input type="text" class="form-control" id="numeroPeca" placeholder="Ex. 2104, 1840, 5898, etc" maxlength="4" min="0" max="9999">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label><i class="fas fa-user-check mr-1"></i> Nome do Auditor</label>
                                             <input type="text" class="form-control bg-light" id="username" readonly>
                                         </div>
                                     </div>
+                
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label><i class="fas fa-barcode mr-1"></i> Últimos 4 números da peça</label>
+                                            <input type="text" class="form-control" id="numeroPeca" placeholder="Ex. 2104, 1840, etc" maxlength="4" min="0" max="9999">
+                                        </div>
+                                    </div>
                                 </div>
-                                
+                
                                 <div class="card mt-4 bg-light">
                                     <div class="card-header bg-primary text-white">
                                         <h6 class="mb-0"><i class="fas fa-tasks mr-2"></i> ITENS A VERIFICAR</h6>
@@ -137,33 +115,32 @@
                                         <div id="lpa-items"></div>
                                     </div>
                                 </div>
-                                
+                
                                 <div class="text-center mt-4">
-                                    <button type="button" class="btn btn-primary px-5" onclick="salvarLPA(event)">
+                                    <button type="button" class="btn btn-primary px-5" onclick="salvarLPA3(event)">
                                         <i class="fas fa-save mr-2"></i> Submeter LPA
                                     </button>                                
                                 </div>
                             </form>
                         </div>
                     </div>
-                </div>                    
-            </div>
-        </div>
+                </div>
+                
 
         {% include 'components/footer.html' %} 
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js" defer></script>
     <script>
-        {%include "js/1_camada/create_lpa/realizarLPA.js"%}
-        {%include "js/1_camada/create_lpa/formatarData.js"%}
-        {%include "js/1_camada/create_lpa/toggleNokFields.js"%}
-        {%include "js/1_camada/create_lpa/guardarLPA.js"%}
+        {%include "js/3_camada/create_lpa3/realizarLPA3.js"%}
+        {%include "js/3_camada/create_lpa3/formatarData3.js"%}
+        {%include "js/3_camada/create_lpa3/toggleNokFields3.js"%}
+        {%include "js/3_camada/create_lpa3/guardarLPA3.js"%}
 
     window.onload = function() {
         var selectedLine = document.getElementById("filter_prod_line").value;
         if (selectedLine) {
-            realizarLPA();  
+            realizarLPA3();  
         }
     };
     </script>

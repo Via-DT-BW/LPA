@@ -75,7 +75,7 @@
                             <div class="card-body">
                                 <div class="form-group">
                                     <label for="id_colaborador"><strong>Confirmar Resolução</strong></label>
-                                    <input type="text" class="form-control" id="id_colaborador" name="id_colaborador" required>
+                                    <input type="number" class="form-control" id="id_colaborador" name="id_colaborador" required>
                                     <small class="form-text text-muted">Insira o número de colaborador para validar esta resolução.</small>
                                 </div>
                             </div>
@@ -95,33 +95,35 @@
             </div>
         </div>
         <script>
-            $(document).ready(function() {
-                $("#verificarForm").submit(function(event) {
-                    event.preventDefault(); 
-            
-                    var formData = $(this).serialize();
-            
-                    $.ajax({
-                        type: "POST",
-                        url: "{{ url_for('resolver_incidencia', id=incidencia.id) }}",
-                        data: formData,
-                        dataType: "json",
-                        success: function(response) {
-                            toastr.success("Verificação concluída com sucesso!");
-                            setTimeout(function() {
-                                window.location.href = "{{ url_for('incidencias') }}"; 
-                            }, 2000); 
-                        },
-                        error: function(xhr) {
-                            var errorMsg = "Erro ao verificar a resolução. Tente novamente!";
-                            if (xhr.responseJSON && xhr.responseJSON.error) {
-                                errorMsg = xhr.responseJSON.error;
+                $(document).ready(function() {
+                    $("#verificarForm").submit(function(event) {
+                        event.preventDefault(); 
+                
+                        var formData = $(this).serialize();
+                
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ url_for('resolver_incidencia') }}?id={{ incidencia.id }}",
+                            data: formData,
+                            dataType: "json",
+                            success: function(response) {
+                                if (response.success) {
+                                    toastr.success("Verificação concluída com sucesso!");
+                                    setTimeout(function() {
+                                        window.location.href = "{{ url_for('incidencias') }}"; 
+                                    }, 2000);
+                                }
+                            },
+                            error: function(xhr) {
+                                var errorMsg = "Erro ao verificar a resolução. Tente novamente!";
+                                if (xhr.responseJSON && xhr.responseJSON.error) {
+                                    errorMsg = xhr.responseJSON.error;
+                                }
+                                toastr.error(errorMsg);
                             }
-                            toastr.error(errorMsg);
-                        }
+                        });
                     });
-                });
-            });        
+                });        
         </script>
         {% include 'components/footer.html' %}
     </div>

@@ -1,129 +1,158 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 {% include 'components/head.html' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 <body id="page-top">
-    <div id="wrapper">
-        {% include 'components/navbar.html' %}
-        <div id="content-wrapper" class="d-flex flex-column">
-            <div id="content">
-                {% include 'components/topbar.html' %}
-                <div class="container-fluid">
-                    <!-- Page Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Análise de Incidências</h1>
-                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"
-                           onclick="exportarRelatorio()">
-                            <i class="fas fa-download fa-sm text-white-50"></i> Exportar Relatório
-                        </a>
-                    </div>
-
-                    <!-- Filtros -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="dataInicio">Data Início</label>
-                                        <input type="date" class="form-control" id="dataInicio">
+    <div id="content">
+        {% include 'analytics/components/navbar_analytics.html' %}
+        <div class="container-fluid flex-grow-1">
+            <div class="container-fluid">
+                <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                    <h1 class="h3 mb-0 text-gray-800">Dashboard de Incidências</h1>
+                    <button onclick="exportarRelatorio()" class="btn btn-primary shadow-sm">
+                        <i class="fas fa-download fa-sm text-white-50 mr-1"></i> Exportar Relatório
+                    </button>
+                </div>
+                
+                <!-- Estatísticas -->
+                <div class="row">
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Total de Incidências
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalIncidencias">0</div>
                                     </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="dataFim">Data Fim</label>
-                                        <input type="date" class="form-control" id="dataFim">
+                                    <div class="col-auto">
+                                        <i class="fas fa-list-alt fa-2x text-gray-300"></i>
                                     </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="linha">Linha</label>
-                                        <select class="form-control" id="linha">
-                                            <option value="">Todas</option>
-                                            <!-- Opções de linhas serão carregadas via JavaScript -->
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="categoria">Categoria</label>
-                                        <select class="form-control" id="categoria">
-                                            <option value="">Todas</option>
-                                            <!-- Opções de categorias serão carregadas via JavaScript -->
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12 text-right">
-                                    <button class="btn btn-primary" onclick="aplicarFiltros()">
-                                        <i class="fas fa-filter mr-2"></i>Aplicar Filtros
-                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Gráficos de Incidências -->
-                    <div class="row">
-                        <!-- Tendência de Incidências -->
-                        <div class="col-xl-6">
-                            <div class="card shadow mb-4">
-                                <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Tendência de Incidências</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div id="tendenciaIncidenciasChart" style="height: 300px;"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Incidências por Linha -->
-                        <div class="col-xl-6">
-                            <div class="card shadow mb-4">
-                                <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Incidências por Linha</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div id="incidenciasPorLinhaChart" style="height: 300px;"></div>
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-warning shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                            Incidências Pendentes
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="incidenciasPendentes">0</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Tabela de Incidências -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Lista de Incidências</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="incidenciasTable" width="100%" cellspacing="0">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Data</th>
-                                            <th>Linha</th>
-                                            <th>Categoria</th>
-                                            <th>Descrição</th>
-                                            <th>Estado</th>
-                                            <th>Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Dados serão carregados via JavaScript -->
-                                    </tbody>
-                                </table>
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Incidências Resolvidas
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="incidenciasResolvidas">0</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Gráficos -->
+                <div class="row">
+                    <div class="col-xl-6 col-lg-6">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">Incidências por Linha</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="incidenciasPorSetorChart" style="height: 300px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-6 col-lg-6">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold text-primary">Tendência de Incidências</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="tendenciaIncidenciasChart" style="height: 300px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabela de Incidências -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Lista de Incidências</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="incidenciasTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Data</th>
+                                        <th>Linha</th>
+                                        <th>Turno</th>
+                                        <th>Não Conformidade</th>
+                                        <th>Ação Corretiva</th>
+                                        <th>Prazo</th>
+                                        <th>Estado</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                
+                                <tbody>
+                                    <!-- Dados serão carregados via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
+        
+            <div id="detalhesIncidenciaModal" class="modal fade">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 id="modalTitulo" class="modal-title">Detalhes da Incidência</h5>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Não Conformidade:</strong> <span id="modalNaoConformidade"></span></p>
+                            <p><strong>Ação Corretiva:</strong> <span id="modalAcaoCorretiva"></span></p>
+                            <p><strong>Prazo:</strong> <span id="modalPrazo"></span></p>
+                            <p><strong>Resolvido:</strong> <span id="modalResolvido"></span></p>
+                            <p><strong>Comentário Resolução:</strong> <span id="modalComentarioResolucao"></span></p>   
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             {% include 'components/footer.html' %}
         </div>
+                
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="https://code.highcharts.com/modules/exporting.js"></script>
+        <script src="https://code.highcharts.com/modules/export-data.js"></script>
+        <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+        
+        <script>{% include 'js/analytics/analytics_incidencias.js' %}</script>
     </div>
-
-    <script src="{{ url_for('static', filename='js/analytics_incidencias.js') }}"></script>
 </body>
 </html>
