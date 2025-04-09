@@ -20,31 +20,41 @@
         
             <hr class="sidebar-divider">
             
-            <li class="nav-item {% if request.path == '/home' %}active{% endif %}">
-                <a class="nav-link" href="/home">
-                    <i class="fas fa-clipboard-check mr-2"></i>
+            <li class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+                <a class="nav-link" href="settings">
+                    <i class="fas fa-users fa-layer-group mr-2"></i>
                     <span>Perfis e Roles</span>
                 </a>
             </li>
- 
-            <li class="nav-item {% if request.path == '/create_lpa' %}active{% endif %}">
-                <a class="nav-link" href="/create_lpa">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span>Definir other checks</span>
+
+            <li class="nav-item {% if request.path == '/lpa_settings' %}active{% endif %}">
+                <a class="nav-link" href="lpa_settings">
+                    <i class="fas fa-users fa-layer-group mr-2"></i>
+                    <span>Gestão de LPAs</span>
                 </a>
             </li>
 
-            <li class="nav-item {% if request.path == '/lpa_check' %}active{% endif %}">
-                <a class="nav-link" href="/lpa_check">
+        
+            <li class="nav-item {% if request.path == '/create_lpa2' %}active{% endif %}">
+                <a class="nav-link" href="create_lpa2">
+                    <i class="fas fa-user-check fa-layer-group mr-2"></i>
+                    <span>Gestão de Other Checks</span>
+                </a>
+            </li>
+        
+            
+
+            <li class="nav-item {% if request.path == '/perguntas_linhas' %}active{% endif %}">
+                <a class="nav-link" href="/perguntas_linhas">
                     <i class="fas fa-search mr-2"></i>
-                    <span>Perguntas</span>
+                    <span>Perguntas por Linha</span>
                 </a>
             </li>
 
-            <li class="nav-item {% if request.path == '/incidencias' %}active{% endif %}">
-                <a class="nav-link" href="/incidencias">
+            <li class="nav-item {% if request.path == '/incidencias2' %}active{% endif %}">
+                <a class="nav-link" href="incidencias2">
                     <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <span>Incidências</span>
+                    <span>Gestão de incidências</span>
                 </a>
             </li>
         
@@ -62,7 +72,7 @@
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
                     </button>
-                    <h4 class="text-white font-weight-bold mb-0 ml-md-4 title-lpa">Layered Process Audit - 1ª Camada</h4>
+                    <h4 class="text-white font-weight-bold mb-0 ml-md-4 title-lpa">Settings</h4>
                     <ul class="navbar-nav ml-auto">
                         <div class="topbar-divider d-none d-sm-block"></div>
                         <li class="nav-item dropdown no-arrow">
@@ -78,7 +88,7 @@
                                 <h6 class="dropdown-header text-center">
                                     {{ session['name'] }}
                                 </h6>
-                                <div class="dropdown-divider"></div>
+                                <div class="dropdown-divider"></div> 
                                 <a class="dropdown-item" href="/">
                                     <i class="fas fa-key fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Alterar Password

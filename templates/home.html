@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 {% include 'components/head.html' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<!-- Add Swiper CSS from CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css">
 {% block content %}
 <body id="page-top">
     <div id="content">
         {% include 'components/navbar.html' %}
         <div class="container-fluid flex-grow-1">
             <div class="card shadow">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="font-weight-bold text-primary mb-0">LPA Diário</h6>
                 </div>
+
                 <form method="GET" action="{{ url_for('home') }}">
-                    <div class="card-body">
+                    <div class="card-body border-bottom">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
@@ -19,7 +23,9 @@
                                     <select name="linha" id="linha" class="form-control">
                                         <option value="">Todas as Linhas</option>
                                         {% for linha in todas_linhas %}
-                                            <option value="{{ linha.id }}" {% if linha.id|string == filtro_linha|string %}selected{% endif %}>{{ linha.linha }}</option>
+                                            <option value="{{ linha.id }}" {% if linha.id|string == filtro_linha|string %}selected{% endif %}>
+                                                {{ linha.linha }}
+                                            </option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -46,102 +52,108 @@
                 </form>
 
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Linha</th>
-                                    <th>Turno</th>
-                                    <th>Estado</th>
-                                    <th>Auditor</th>
-                                    <th>Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for linha in linhas %}
+                    {% for linha in linhas %}
+                        <div class="row mb-4">
+                            <div class="col-12 mb-2">
+                                <h5><strong>Linha:</strong> {{ linha.linha }}</h5>
+                            </div>
+                            
+                            <!-- Desktop View (only visible on md and above) -->
+                            <div class="col-12 d-none d-md-block">
+                                <div class="row">
                                     {% for lpa in linha.lpas %}
-                                        <tr {% if loop.first %}class="border-top-0"{% endif %}>
-                                            {% if loop.first %}
-                                                <td rowspan="{{ linha.lpas|length }}" class="align-middle">{{ linha.linha }}</td>
-                                            {% endif %}
-                                            <td>{{ lpa.turno }}</td>
-                                            {% if lpa.estado == "Realizado" %}
-                                                <td><span class="badge badge-success">Realizado</span></td>
-                                                <td>{{ lpa.auditor }}</td>
-                                                <td>
-                                                    <button class="btn btn-info btn-sm btn-sm-mobile" data-toggle="modal" data-target="#lpaModal" 
+                                        <div class="col-md-4 mb-4">
+                                            <div class="card shadow-sm border-left-primary h-100">
+                                                <div class="card-body d-flex flex-column">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="badge {% if lpa.estado == 'Realizado' %}badge-success{% else %}badge-warning{% endif %}">
+                                                            {{ lpa.estado }}
+                                                        </span>
+                                                        <span class="font-weight-bold">{{ lpa.turno }}</span>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <p class="mb-3"><strong>Auditor:</strong> {{ lpa.auditor }}</p>
+                                                    </div>
+                                                    <div class="d-flex justify-content-center mt-auto">
+                                                        {% if lpa.estado == 'Realizado' %}
+                                                        <button class="btn btn-info" data-toggle="modal" data-target="#lpaModal" 
                                                         onclick="verDetalhes('{{ linha.linha }}', '{{ lpa.data_auditoria }}', '{{ lpa.turno }}', '{{ lpa.auditor }}')">
                                                         Ver Dados
                                                     </button>
-                                                </td>
-                                            {% else %}
-                                                <td><span class="badge badge-warning">Por Realizar</span></td>
-                                                <td>{{ lpa.auditor }}</td>
-                                                <td>
-                                                    <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=lpa.turno) }}" 
-                                                       class="btn btn-primary btn-sm btn-sm-mobile">
-                                                        Realizar
-                                                    </a>
-                                                </td>                                                        
-                                            {% endif %}
-                                        </tr>
+                                                        {% else %}
+                                                            <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=lpa.turno) }}" 
+                                                               class="btn btn-primary btn-sm">
+                                                                Realizar
+                                                            </a>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     {% endfor %}
-                                {% endfor %}
-                            </tbody>                            
-                        </table>
-                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Mobile View with Slider (only visible on smaller than md) -->
+                            <div class="col-12 d-md-none">
+                                <div class="swiper-container lpa-slider-{{ linha.id }}">
+                                    <div class="swiper-wrapper">
+                                        {% for lpa in linha.lpas %}
+                                            <div class="swiper-slide">
+                                                <div class="card shadow-sm border-left-primary h-100">
+                                                    <div class="card-body d-flex flex-column">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="badge {% if lpa.estado == 'Realizado' %}badge-success{% else %}badge-warning{% endif %}">
+                                                                {{ lpa.estado }}
+                                                            </span>
+                                                            <span class="font-weight-bold">{{ lpa.turno }}</span>
+                                                        </div>
+                                                        <div class="mt-2">
+                                                            <p class="mb-3"><strong>Auditor:</strong> {{ lpa.auditor }}</p>
+                                                        </div>
+                                                        <div class="d-flex justify-content-center mt-auto">
+                                                            {% if lpa.estado == 'Realizado' %}
+                                                            <button class="btn btn-info" data-toggle="modal" data-target="#lpaModal" 
+                                                            onclick="verDetalhes('{{ linha.linha }}', '{{ lpa.data_auditoria }}', '{{ lpa.turno }}', '{{ lpa.auditor }}')">
+                                                            Ver Dados
+                                                        </button>
+                                                            {% else %}
+                                                                <a href="{{ url_for('create_lpa', linha_id=linha.id, turno=lpa.turno) }}" 
+                                                                   class="btn btn-primary btn-sm">
+                                                                    Realizar
+                                                                </a>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <!-- Add navigation arrows -->
+                                    <div class="swiper-button-next swiper-button-next-{{ linha.id }}"></div>
+                                    <div class="swiper-button-prev swiper-button-prev-{{ linha.id }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
+
                 {% if total_pages > 1 %}
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-responsive justify-content-center flex-wrap">
-                        {# Previous Page #}
                         <li class="page-item {% if page == 1 %}disabled{% endif %}">
                             <a class="page-link" href="?page={{ page-1 }}&page_size=7&linha={{ filtro_linha }}&turno={{ turno }}">
                                 <span class="d-none d-sm-inline">Anterior</span>
                                 <span class="d-inline d-sm-none">&laquo;</span>
                             </a>
                         </li>
-                
-                        {# Initialize a set to track shown pages #}
-                        {% set shown_pages = [1] %}
-                
-                        {# First page always shown #}
-                        <li class="page-item {% if page == 1 %}active{% endif %}">
-                            <a class="page-link" href="?page=1&page_size=7&linha={{ filtro_linha }}&turno={{ turno }}">1</a>
-                        </li>
-                
-                        {# Ellipsis before page range if needed #}
-                        {% if page > 3 and total_pages > 5 %}
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        {% endif %}
-                
-                        {# Page range around current page #}
-                        {% for p in range(2, total_pages + 1) %}
-                            {% if (p >= page - 1 and p <= page + 1) or 
-                                  (p <= 4 and page <= 3) or 
-                                  (p >= total_pages - 3 and page >= total_pages - 2) %}
-                                {% if p != 1 and p != total_pages and p not in shown_pages %}
-                                    <li class="page-item {% if p == page %}active{% endif %}">
-                                        <a class="page-link" href="?page={{ p }}&page_size=7&linha={{ filtro_linha }}&turno={{ turno }}">{{ p }}</a>
-                                    </li>
-                                    {% set shown_pages = shown_pages + [p] %}
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                
-                        {# Ellipsis after page range if needed #}
-                        {% if page < total_pages - 2 and total_pages > 5 %}
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        {% endif %}
-                
-                        {# Last page #}
-                        {% if total_pages > 1 %}
-                            <li class="page-item {% if page == total_pages %}active{% endif %}">
-                                <a class="page-link" href="?page={{ total_pages }}&page_size=7&linha={{ filtro_linha }}&turno={{ turno }}">{{ total_pages }}</a>
+
+                        {% for p in range(1, total_pages + 1) %}
+                            <li class="page-item {% if p == page %}active{% endif %}">
+                                <a class="page-link" href="?page={{ p }}&page_size=7&linha={{ filtro_linha }}&turno={{ turno }}">{{ p }}</a>
                             </li>
-                        {% endif %}
-                
-                        {# Next Page #}
+                        {% endfor %}
+
                         <li class="page-item {% if page == total_pages %}disabled{% endif %}">
                             <a class="page-link" href="?page={{ page+1 }}&page_size=7&linha={{ filtro_linha }}&turno={{ turno }}">
                                 <span class="d-none d-sm-inline">Próximo</span>
@@ -153,9 +165,7 @@
                 {% endif %}
             </div>
         </div>
-    </div> 
-
-    {% include 'components/footer.html' %} 
+    </div>
 
     <div class="modal fade" id="lpaModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -175,18 +185,126 @@
         </div>
     </div>
 
+    <!-- Add Swiper JS from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
-        {%include "js/1_camada/home/verLPA.js"%}
-
+        {% include "js/1_camada/home/verLPA.js" %}
+        
+        // Initialize Swiper sliders for each linha
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for linha in linhas %}
+                var swiper{{ linha.id }} = new Swiper('.lpa-slider-{{ linha.id }}', {
+                    slidesPerView: 1,
+                    spaceBetween: 10,
+                    centeredSlides: true,
+                    effect: 'slide',
+                    loop: true,
+                    speed: 100,
+                    navigation: {
+                        nextEl: '.swiper-button-next-{{ linha.id }}',
+                        prevEl: '.swiper-button-prev-{{ linha.id }}',
+                    },
+                    on: {
+                        init: function() {
+                            hideArrows{{ linha.id }}();
+                        },
+                    }
+                });
+                
+                // Hide arrows initially
+                function hideArrows{{ linha.id }}() {
+                    document.querySelector('.swiper-button-next-{{ linha.id }}').style.opacity = '0';
+                    document.querySelector('.swiper-button-prev-{{ linha.id }}').style.opacity = '0';
+                }
+                
+                // Show arrows on touch/mouse events
+                var slider{{ linha.id }} = document.querySelector('.lpa-slider-{{ linha.id }}');
+                var arrowTimeout{{ linha.id }};
+                
+                slider{{ linha.id }}.addEventListener('touchstart', function() {
+                    showArrows{{ linha.id }}();
+                });
+                
+                slider{{ linha.id }}.addEventListener('mousemove', function() {
+                    showArrows{{ linha.id }}();
+                });
+                
+                function showArrows{{ linha.id }}() {
+                    var nextArrow = document.querySelector('.swiper-button-next-{{ linha.id }}');
+                    var prevArrow = document.querySelector('.swiper-button-prev-{{ linha.id }}');
+                    
+                    nextArrow.style.opacity = '1';
+                    prevArrow.style.opacity = '1';
+                    
+                    clearTimeout(arrowTimeout{{ linha.id }});
+                    
+                    arrowTimeout{{ linha.id }} = setTimeout(function() {
+                        nextArrow.style.opacity = '0';
+                        prevArrow.style.opacity = '0';
+                    }, 2000);
+                }
+                
+                slider{{ linha.id }}.addEventListener('mouseleave', function() {
+                    setTimeout(function() {
+                        hideArrows{{ linha.id }}();
+                    }, 1000);
+                });
+            {% endfor %}
+        });
+        
         {% if filtro_linha or turno %}
-            toastr.success("Filtros aplicados com sucesso!", "Sucesso", {
-            });
+            toastr.success("Filtros aplicados com sucesso!", "Sucesso", {});
         {% endif %}
     </script>
-    
 
+    <style>
+        /* Custom styles for the slider */
+        .swiper-container {
+            width: 100%;
+            padding-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .swiper-button-next,
+        .swiper-button-prev {
+            color: #4e73df;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            transition: opacity 0.3s ease, transform 0.2s ease;
+        }
+        
+        .swiper-button-next:after,
+        .swiper-button-prev:after {
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .swiper-button-next:hover,
+        .swiper-button-prev:hover {
+            transform: scale(1.1);
+        }
+        
+        .swiper-slide {
+            height: auto;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        
+        .swiper-slide:not(.swiper-slide-active) {
+            opacity: 0;
+        }
+        
+        .swiper-slide .card {
+            height: 100%;
+            margin: 0 auto;
+            max-width: 90%;
+        }
+    </style>
 </body>
 {% endblock %}
 </html>

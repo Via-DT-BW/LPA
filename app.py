@@ -19,7 +19,6 @@ connection_string = settings[0]["connection_string_db_teste_jose"]
 def get_db_connection():
     return pyodbc.connect(connection_string)
 
-     #################### 1º CAMADA #####################################
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -29,9 +28,12 @@ def index():
 def login():
     username = request.form['username']
     password = request.form['password']
-    redirect_page = request.form.get('redirect_page', 'index') 
+    redirect_page = request.form.get('redirect_page', 'index')
+    is_lpa_login = request.form.get('is_lpa_login', 'false') == 'true'
 
     if not username or not password:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Por favor, insira o nome de usuário e a senha.'})
         flash('Por favor, insira o nome de usuário e a senha.', 'error')
         return redirect(url_for('index'))
 
@@ -55,25 +57,42 @@ def login():
             session['nr_colaborador'] = user[2]
             session['role'] = user[4].strip() if user[4] else ""
 
+            # For AJAX requests (from "Realizar LPA")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and is_lpa_login:
+                return jsonify({
+                    'success': True,
+                    'role': session['role']
+                })
+
+            # For regular form submissions (other menu items)
             role_permissions = {
-                "admin": ["home", "home2", "home3", "home4", "analytics_dashboard", "settings"],
+                "admin": ["home", "home2", "home3", "home4", "analytics_dashboard", "settings_home"],
                 "TL": ["home"],
                 "PL": ["home2"],
                 "PLM": ["home3"],
                 "other": ["home4"]
             }
+            
             if session['role'] in role_permissions and redirect_page in role_permissions[session['role']]:
                 return redirect(url_for(redirect_page))
             else:
                 flash("Você não tem permissão para aceder esta página.", "error")
                 return redirect(url_for('index'))  # Volta para a página inicial
 
+        # Login failed
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Credenciais inválidas. Tente novamente.'})
         flash('Credenciais inválidas. Tente novamente.', 'error')
         return redirect(url_for('index'))
 
     except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': f'Erro ao fazer login: {str(e)}'})
         flash(f'Erro ao fazer login: {str(e)}', 'error')
         return redirect(url_for('index'))
+    
+    
+     #################### 1º CAMADA #####################################
 
 @app.route('/home', methods=['GET'])
 def home():
@@ -1813,12 +1832,149 @@ def incidencias3():
     
     #########################  OTHER CHECKS  #####################################
     
-@app.route('/other_checks')
+@app.route('/other_checks', methods=['GET'])
 def home4():
     if 'user_id' not in session:
-        flash("É necessário fazer login para acessar esta página.", "error")
-        return redirect(url_for('index'))  
-    return render_template('other_checks/home4.html') 
+        return redirect(url_for('index'))
+
+    user_id = session['user_id']
+    user_role = session['role']
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 🔹 Obter o filtro da linha e a página
+        filtro_linha = request.args.get('linha', '')
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('page_size', 18))
+        offset = (page - 1) * page_size
+
+        # 🔹 Obter as linhas para o filtro (Admin vê todas, PL vê as associadas)
+        if user_role == 'admin':
+            query_linhas = "SELECT DISTINCT id, linha FROM linhas ORDER BY linha"
+            cursor.execute(query_linhas)
+        else:
+            query_linhas = """
+                SELECT DISTINCT l.id, l.linha
+                FROM linhas l
+                JOIN users_linhas lu ON l.id = lu.id_linha
+                WHERE lu.id_users = ?
+                ORDER BY l.linha
+            """
+            cursor.execute(query_linhas, (user_id,))
+
+        todas_linhas = [{"id": row[0], "linha": row[1]} for row in cursor.fetchall()]
+
+        # 🔹 Obter linhas paginadas
+        query_paged_lines = """
+        SELECT DISTINCT l.id, l.linha
+        FROM linhas l
+        """
+        params = []
+
+        if user_role != 'admin':
+            query_paged_lines += """
+                JOIN users_linhas lu ON l.id = lu.id_linha
+                WHERE lu.id_users = ?
+            """
+            params.append(user_id)
+
+        if filtro_linha:
+            query_paged_lines += " AND l.id = ?"
+            params.append(filtro_linha)
+
+        query_total_lines = query_paged_lines.replace(
+            "SELECT DISTINCT l.id, l.linha",
+            "SELECT COUNT(DISTINCT l.id)"
+        )
+
+        cursor.execute(query_total_lines, params)
+        total_lines = cursor.fetchone()[0]
+        total_pages = (total_lines + page_size - 1) // page_size
+
+        page = max(1, min(page, total_pages))
+        offset = (page - 1) * page_size
+
+        query_paged_lines += " ORDER BY l.linha OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        params.extend([offset, page_size])
+
+        cursor.execute(query_paged_lines, params)
+        paged_lines = cursor.fetchall()
+
+        current_page_line_ids = [row[0] for row in paged_lines]
+
+        # 🔹 Buscar LPAs da 3ª Camada
+        if current_page_line_ids:
+            placeholders = ','.join(['?' for _ in current_page_line_ids])
+            query_lpas_3 = f"""
+            SELECT l.id AS linha_id, l.linha, 
+                   LPA_3.data_auditoria, p.username AS auditor, 
+                   LPA_3.resposta, LPA_3.registo_peca
+            FROM linhas l
+            LEFT JOIN (
+                SELECT lp.linha_id, MAX(LPA_3.data_auditoria) as max_date
+                FROM LPA_3
+                JOIN linha_pergunta lp ON LPA_3.linha_pergunta_id = lp.id
+                GROUP BY lp.linha_id
+            ) recent ON l.id = recent.linha_id
+            LEFT JOIN linha_pergunta lp ON l.id = lp.linha_id
+            LEFT JOIN LPA_3 ON lp.id = LPA_3.linha_pergunta_id AND 
+                             (recent.max_date IS NULL OR LPA_3.data_auditoria = recent.max_date)
+            LEFT JOIN users p ON LPA_3.id_user = p.id
+            WHERE l.id IN ({placeholders})
+            ORDER BY l.linha
+            """
+            cursor.execute(query_lpas_3, current_page_line_ids)
+            lpas_result = [
+                {
+                    "linha_id": row[0],
+                    "linha": row[1],
+                    "data_auditoria": row[2],
+                    "auditor": row[3],
+                    "resposta": row[4],
+                    "registo_peca": row[5]
+                }
+                for row in cursor.fetchall()
+            ]
+        else:
+            lpas_result = []
+
+        conn.close()
+
+        # 🔹 Organizar os dados para o template
+        linhas_com_estado = []
+        for linha_id, linha_nome in [(row[0], row[1]) for row in paged_lines]:
+            linha_info = {
+                "id": linha_id,
+                "linha": linha_nome,
+                "lpas": []
+            }
+
+            lpa_info = next((lpa for lpa in lpas_result if lpa["linha_id"] == linha_id), None)
+
+            lpa_obj = {
+                "turno": "N/A",
+                "estado": "Realizado" if lpa_info and lpa_info["resposta"] else "Por Realizar",
+                "auditor": lpa_info["auditor"] if lpa_info and lpa_info["auditor"] else "--",
+                "data_auditoria": lpa_info["data_auditoria"] if lpa_info else None,
+                "resposta": lpa_info["resposta"] if lpa_info else None
+            }
+
+            linha_info["lpas"].append(lpa_obj)
+            linhas_com_estado.append(linha_info)
+
+        return render_template('other_checks/home4.html', 
+                               linhas=linhas_com_estado,
+                               filtro_linha=filtro_linha, 
+                               todas_linhas=todas_linhas,
+                               page=page,
+                               total_pages=total_pages,
+                               page_size=page_size)
+
+    except Exception as e:
+        flash(f'Erro ao carregar LPAs: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
     #########################  FIM OTHER CHECKS #####################################
     #########################  ANALYTICS #####################################
@@ -2029,8 +2185,376 @@ def analytics_lpa_stats():
 @app.route('/analytics/comparativo')
 def analytics_comparativo():
     return render_template('analytics/comparativo.html')
+  #########################  FIM ANALYTICS #####################################
+    
+    #########################  SETTINGS #####################################
+@app.route('/settings')
+def settings_home():
+    return render_template('settings/settings_home.html')
+
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Execute a consulta SQL para obter todos os usuários
+        cursor.execute("""
+            SELECT [id], [name], [nr_colaborador], [username], [phone], [email], [role]
+            FROM [teste_jose].[dbo].[users]
+        """)
+        
+        # Converter resultado em lista de dicionários
+        columns = [column[0] for column in cursor.description]
+        users = []
+        for row in cursor.fetchall():
+            users.append(dict(zip(columns, row)))
+        
+        conn.close()
+        return jsonify(users)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT [id], [name], [nr_colaborador], [username], [phone], [email], [role]
+            FROM [teste_jose].[dbo].[users]
+            WHERE [id] = ?
+        """, user_id)
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            columns = [column[0] for column in cursor.description]
+            user = dict(zip(columns, row))
+            return jsonify(user)
+        else:
+            return jsonify({"error": "Utilizador não encontrado"}), 404
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/users', methods=['POST'])
+def add_user():
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""select max(id) from [teste_jose].[dbo].[users] """)
+        max_id = cursor.fetchone()[0]
+        
+        cursor.execute("""
+            INSERT INTO [teste_jose].[dbo].[users]
+            ([id],[name], [nr_colaborador], [username], [phone], [email], [password], [role])
+            VALUES (?,?, ?, ?, ?, ?, ?, ?)
+        """, 
+        max_id + 1,
+        data['name'], 
+        data['nr_colaborador'] if data['nr_colaborador'] else None, 
+        data['username'], 
+        data['phone'], 
+        data['email'], 
+        data['password'], 
+        data['role'])
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Utilizador adicionado com sucesso"}), 201
+    
+    except Exception as e:
+        print(f"Erro ao adicionar utilizador: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se o campo password foi fornecido
+        if 'password' in data and data['password']:
+            cursor.execute("""
+                UPDATE [teste_jose].[dbo].[users]
+                SET [name] = ?, [nr_colaborador] = ?, [username] = ?, 
+                    [phone] = ?, [email] = ?, [password] = ?, [role] = ?
+                WHERE [id] = ?
+            """, 
+            data['name'], 
+            data['nr_colaborador'] if data['nr_colaborador'] else None, 
+            data['username'], 
+            data['phone'], 
+            data['email'], 
+            data['password'], 
+            data['role'],
+            user_id)
+        else:
+            cursor.execute("""
+                UPDATE [teste_jose].[dbo].[users]
+                SET [name] = ?, [nr_colaborador] = ?, [username] = ?, 
+                    [phone] = ?, [email] = ?, [role] = ?
+                WHERE [id] = ?
+            """, 
+            data['name'], 
+            data['nr_colaborador'] if data['nr_colaborador'] else None, 
+            data['username'], 
+            data['phone'], 
+            data['email'], 
+            data['role'],
+            user_id)
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Utilizador atualizado com sucesso"})
+    
+    except Exception as e:
+        print(f"Erro ao atualizar utilizador: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/users/<int:user_id>/role', methods=['PUT'])
+def update_user_role(user_id):
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE [teste_jose].[dbo].[users]
+            SET [role] = ?
+            WHERE [id] = ?
+        """, data['role'], user_id)
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Role atualizado com sucesso"})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM [teste_jose].[dbo].[users]
+            WHERE [id] = ?
+        """, user_id)
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Utilizador eliminado com sucesso"})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/perguntas_linhas')
+def perguntas_linhas():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Obter todas as linhas para o filtro
+        cursor.execute("""
+            SELECT [id], [linha]
+            FROM [teste_jose].[dbo].[linhas]
+            ORDER BY [linha]
+        """)
+        todas_linhas = []
+        for row in cursor.fetchall():
+            todas_linhas.append({"id": row[0], "linha": row[1]})
+
+        # Processar parâmetros de filtro
+        filtro_linha = request.args.get('linha', '')
+        page = int(request.args.get('page', 1))
+        items_per_page = 15  # Aumentado para 20 itens por página
+
+        # Construir a consulta base
+        query_base = """
+            SELECT lpe.[id], lpe.[pergunta], l.[linha], lpe.[linha_id], lpe.[objetivo]
+            FROM [teste_jose].[dbo].[linha_pergunta_especifica] lpe
+            JOIN [teste_jose].[dbo].[linhas] l ON lpe.[linha_id] = l.[id]
+        """
+
+        # Adicionar filtro se necessário
+        params = []
+        if filtro_linha:
+            query_base += " WHERE lpe.[linha_id] = ?"
+            params.append(filtro_linha)
+
+        # Consulta para contagem total
+        cursor.execute(f"SELECT COUNT(*) FROM ({query_base}) as count_query", params)
+        total_items = cursor.fetchone()[0]
+        total_pages = (total_items + items_per_page - 1) // items_per_page
+
+        # Consulta final com paginação
+        offset = (page - 1) * items_per_page
+        query_final = f"{query_base} ORDER BY l.[linha], lpe.[id] OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        params.extend([offset, items_per_page])
+        
+        cursor.execute(query_final, params)
+        
+        perguntas = []
+        for row in cursor.fetchall():
+            perguntas.append({
+                "id": row[0],
+                "pergunta": row[1],
+                "linha": row[2],
+                "linha_id": row[3],
+                "objetivo": row[4] if row[4] else ""
+            })
+        
+        conn.close()
+
+        return render_template(
+            'settings/perguntas_linhas.html',
+            perguntas=perguntas,
+            todas_linhas=todas_linhas,
+            filtro_linha=filtro_linha,
+            page=page,
+            total_pages=total_pages
+        )
+    
+    except Exception as e:
+        print(f"Erro ao carregar perguntas por linha: {str(e)}")
+        return render_template('error.html', error=str(e))
+
+# API para obter uma pergunta específica
+@app.route('/api/perguntas/<int:pergunta_id>', methods=['GET'])
+def get_pergunta(pergunta_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT lpe.[id], lpe.[linha_id], l.[linha], lpe.[pergunta], lpe.[objetivo]
+            FROM [teste_jose].[dbo].[linha_pergunta_especifica] lpe
+            JOIN [teste_jose].[dbo].[linhas] l ON lpe.[linha_id] = l.[id]
+            WHERE lpe.[id] = ?
+        """, pergunta_id)
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            pergunta = {
+                "id": row[0],
+                "linha_id": row[1],
+                "linha": row[2],
+                "pergunta": row[3],
+                "objetivo": row[4] if row[4] else ""
+            }
+            return jsonify(pergunta)
+        else:
+            return jsonify({"error": "Pergunta não encontrada"}), 404
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# API para atualizar uma pergunta
+@app.route('/api/perguntas/<int:pergunta_id>', methods=['PUT'])
+def update_pergunta(pergunta_id):
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE [teste_jose].[dbo].[linha_pergunta_especifica]
+            SET [linha_id] = ?, [pergunta] = ?, [objetivo] = ?
+            WHERE [id] = ?
+        """, 
+        data['linha_id'], 
+        data['pergunta'], 
+        data['objetivo'],
+        pergunta_id)
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Pergunta atualizada com sucesso"})
+    
+    except Exception as e:
+        print(f"Erro ao atualizar pergunta: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# API para adicionar uma nova pergunta
+@app.route('/api/perguntas', methods=['POST'])
+def add_pergunta():
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Obter o próximo ID disponível
+        cursor.execute("""SELECT MAX(id) FROM [teste_jose].[dbo].[linha_pergunta_especifica]""")
+        max_id = cursor.fetchone()[0]
+        next_id = 1 if max_id is None else max_id + 1
+        
+        cursor.execute("""
+            INSERT INTO [teste_jose].[dbo].[linha_pergunta_especifica]
+            ([id], [pergunta], [linha], [linha_id], [objetivo])
+            VALUES (?, ?, ?, ?, ?)
+        """, 
+        next_id,
+        data['pergunta'],
+        data['linha'],  # Nome da linha
+        data['linha_id'],  # ID da linha
+        data['objetivo'])
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Pergunta adicionada com sucesso", "id": next_id}), 201
+    
+    except Exception as e:
+        print(f"Erro ao adicionar pergunta: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# API para excluir uma pergunta
+@app.route('/api/perguntas/<int:pergunta_id>', methods=['DELETE'])
+def delete_pergunta(pergunta_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM [teste_jose].[dbo].[linha_pergunta_especifica]
+            WHERE [id] = ?
+        """, pergunta_id)
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Pergunta excluída com sucesso"})
+    
+    except Exception as e:
+        print(f"Erro ao excluir pergunta: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+  #########################  FIM SETTINGS #####################################
+
 
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
-    #########################  FIM ANALYTICS #####################################
+  
+    
+
+
+
+
+

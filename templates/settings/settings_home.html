@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+{% include 'settings/components/head.html' %}
+{% block content %}
+<body id="page-top">
+    <div id="content">
+        {% include 'settings/components/navbar.html' %}
+        <div class="container-fluid flex-grow-1">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">Utilizadores do Sistema</h6>
+                            <button class="btn btn-primary btn-icon-split" data-toggle="modal" data-target="#addUserModal">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <span class="text">Adicionar Utilizador</span>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Username</th>
+                                            <th>Telefone</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End of Page Content -->
+            </div>
+        
+        </div>
+        <!-- End of Content Wrapper -->
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-btn" id="addUserModalLabel">Adicionar Novo Utilizador</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="name">Nome Completo</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="nr_colaborador">Nº Colaborador</label>
+                                <input type="text" class="form-control" id="nr_colaborador" name="nr_colaborador">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="username">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="phone">Telefone</label>
+                                <input type="text" class="form-control" id="phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="email">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="password">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Role</label>
+                            <select class="form-control" id="role" name="role" required>
+                                <option value="" disabled selected>Selecione um role</option>
+                                <option value="admin">Admin</option>
+                                <option value="PLM">PLM</option>
+                                <option value="PL">PL</option>
+                                <option value="TL">TL</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveNewUser">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" role="dialog" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Editar Utilizador</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="edit_id" name="id">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="edit_name">Nome Completo</label>
+                                <input type="text" class="form-control" id="edit_name" name="name" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="edit_nr_colaborador">Nº Colaborador</label>
+                                <input type="text" class="form-control" id="edit_nr_colaborador" name="nr_colaborador">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="edit_username">Username</label>
+                                <input type="text" class="form-control" id="edit_username" name="username" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="edit_phone">Telefone</label>
+                                <input type="text" class="form-control" id="edit_phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="edit_email">Email</label>
+                                <input type="email" class="form-control" id="edit_email" name="email" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="edit_password">Password (Deixe em branco para manter)</label>
+                                <input type="password" class="form-control" id="edit_password" name="password">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_role">Role</label>
+                            <select class="form-control" id="edit_role" name="role" required>
+                                <option value="admin">Admin</option>
+                                <option value="PLM">PLM</option>
+                                <option value="PL">PL</option>
+                                <option value="TL">TL</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="updateUser">Atualizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Modal -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteUserModalLabel">Confirmar Eliminação</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja eliminar o utilizador <strong id="delete_user_name"></strong>?</p>
+                    <p class="text-danger">Esta ação não pode ser desfeita.</p>
+                    <input type="hidden" id="delete_user_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Role Modal -->
+    <div class="modal fade" id="changeRoleModal" tabindex="-1" role="dialog" aria-labelledby="changeRoleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="changeRoleModalLabel">Alterar Role</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Alterar role para o utilizador <strong id="change_role_user_name"></strong>:</p>
+                    <input type="hidden" id="change_role_user_id">
+                    <div class="form-group">
+                        <label for="new_role">Novo Role</label>
+                        <select class="form-control" id="new_role" name="new_role" required>
+                            <option value="admin">Admin</option>
+                            <option value="PLM">PLM</option>
+                            <option value="PL">PL</option>
+                            <option value="TL">TL</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirmChangeRole">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSS for Custom DataTable Styling -->
+    <style>
+        /* Larger search box positioned on the left */
+        .dataTables_filter {
+            width: 80% !important;
+            margin-bottom: 20px !important;
+            text-align: left !important;
+        }
+        
+        .dataTables_filter input {
+            width: 200% !important;
+            height: 40px !important;
+        }
+        
+        /* Center pagination controls */
+        .dataTables_paginate {
+            margin: 0 auto !important;
+            float: none !important;
+            text-align: center !important;
+            display: flex !important;
+            justify-content: center !important;
+            padding-top: 15px !important;
+        }
+        
+    
+    </style>
+
+    <!-- Scripts -->
+    <script src="static/vendor/jquery/jquery.min.js"></script>
+    <script src="static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/sb-admin-2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable with AJAX source
+            const table = $('#usersTable').DataTable({
+                processing: true,
+                serverSide: false, // Change to true for server-side processing
+                ajax: {
+                    url: '/api/users',
+                    dataSrc: ''
+                },
+                columns: [
+                    { data: 'name' },
+                    { data: 'username' },
+                    { data: 'phone' },
+                    { data: 'email' },
+                    { 
+                        data: 'role',
+                        render: function(data) {
+                            let badgeClass = "";
+                            switch(data.toLowerCase()) {
+                                case 'admin':
+                                    badgeClass = "role-admin";
+                                    break;
+                                case 'plm':
+                                    badgeClass = "role-plm";
+                                    break;
+                                case 'pl':
+                                    badgeClass = "role-pl";
+                                    break;
+                                case 'tl':
+                                    badgeClass = "role-tl";
+                                    break;
+                            }
+                            return `<span class="role-badge ${badgeClass}">${data}</span>`;
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data, type, row) {
+                            return `
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-primary edit-btn" data-id="${row.id}" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-info role-btn" data-id="${row.id}" data-name="${row.name}" title="Alterar Role">
+                                        <i class="fas fa-user-tag"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${row.name}" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese.json",
+                    // Remove entries and pagination text
+                    lengthMenu: "",
+                    info: "",
+                    // Customize search label
+                    search: "Pesquisar:"
+                },
+                // Remove the entries dropdown
+                lengthChange: false,
+                // Keep the search box
+                searching: true,
+                // Customize pagination display
+                dom: "<'row'<'col-sm-12'f>>" +
+                     "<'row'<'col-sm-12'tr>>" +
+                     "<'row'<'col-sm-12'p>>"
+            });
+
+            // Configure Toastr
+            toastr.options = {
+                "closeButton": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "timeOut": "3000"
+            };
+
+            // Edit User
+            $('#usersTable').on('click', '.edit-btn', function() {
+                const userId = $(this).data('id');
+                
+                // Fetch user data from backend
+                $.ajax({
+                    url: `/api/users/${userId}`,
+                    method: 'GET',
+                    success: function(user) {
+                        $('#edit_id').val(user.id);
+                        $('#edit_name').val(user.name);
+                        $('#edit_nr_colaborador').val(user.nr_colaborador);
+                        $('#edit_username').val(user.username);
+                        $('#edit_phone').val(user.phone);
+                        $('#edit_email').val(user.email);
+                        $('#edit_password').val('');
+                        $('#edit_role').val(user.role);
+                        
+                        $('#editUserModal').modal('show');
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error('Erro ao carregar dados do utilizador');
+                    }
+                });
+            });
+
+            // Update User
+            $('#updateUser').click(function() {
+                const userId = $('#edit_id').val();
+                const userData = {
+                    name: $('#edit_name').val(),
+                    nr_colaborador: $('#edit_nr_colaborador').val(),
+                    username: $('#edit_username').val(),
+                    phone: $('#edit_phone').val(),
+                    email: $('#edit_email').val(),
+                    role: $('#edit_role').val()
+                };
+                
+                // Only add password if provided
+                if ($('#edit_password').val()) {
+                    userData.password = $('#edit_password').val();
+                }
+                
+                $.ajax({
+                    url: `/api/users/${userId}`,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify(userData),
+                    success: function(response) {
+                        $('#editUserModal').modal('hide');
+                        toastr.success('Utilizador atualizado com sucesso!');
+                        table.ajax.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error('Erro ao atualizar utilizador');
+                    }
+                });
+            });
+
+            // Delete User
+            $('#usersTable').on('click', '.delete-btn', function() {
+                const userId = $(this).data('id');
+                const userName = $(this).data('name');
+                
+                $('#delete_user_id').val(userId);
+                $('#delete_user_name').text(userName);
+                
+                $('#deleteUserModal').modal('show');
+            });
+
+            // Confirm Delete
+            $('#confirmDelete').click(function() {
+                const userId = $('#delete_user_id').val();
+                
+                $.ajax({
+                    url: `/api/users/${userId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        $('#deleteUserModal').modal('hide');
+                        toastr.success('Utilizador eliminado com sucesso!');
+                        table.ajax.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error('Erro ao eliminar utilizador');
+                    }
+                });
+            });
+
+            // Change Role
+            $('#usersTable').on('click', '.role-btn', function() {
+                const userId = $(this).data('id');
+                const userName = $(this).data('name');
+                
+                // Fetch current role from backend
+                $.ajax({
+                    url: `/api/users/${userId}`,
+                    method: 'GET',
+                    success: function(user) {
+                        $('#change_role_user_id').val(userId);
+                        $('#change_role_user_name').text(userName);
+                        $('#new_role').val(user.role);
+                        
+                        $('#changeRoleModal').modal('show');
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error('Erro ao carregar dados do utilizador');
+                    }
+                });
+            });
+
+            // Confirm Change Role
+            $('#confirmChangeRole').click(function() {
+                const userId = $('#change_role_user_id').val();
+                const newRole = $('#new_role').val();
+                
+                $.ajax({
+                    url: `/api/users/${userId}/role`,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ role: newRole }),
+                    success: function(response) {
+                        $('#changeRoleModal').modal('hide');
+                        toastr.success('Role atualizado com sucesso!');
+                        table.ajax.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error('Erro ao atualizar role');
+                    }
+                });
+            });
+
+            // Add New User
+            $('#saveNewUser').click(function() {
+                const userData = {
+                    name: $('#name').val(),
+                    nr_colaborador: $('#nr_colaborador').val(),
+                    username: $('#username').val(),
+                    phone: $('#phone').val(),
+                    email: $('#email').val(),
+                    password: $('#password').val(),
+                    role: $('#role').val()
+                };
+                
+                $.ajax({
+                    url: '/api/users',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(userData),
+                    success: function(response) {
+                        $('#addUserModal').modal('hide');
+                        $('#addUserForm')[0].reset();
+                        toastr.success('Novo utilizador adicionado com sucesso!');
+                        table.ajax.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error('Erro ao adicionar utilizador');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+{% endblock %}
+</html>

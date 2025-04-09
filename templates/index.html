@@ -177,6 +177,23 @@
             background-color: #2efad9;
         }
 
+        /* Admin layer selection modal styles */
+        .layer-btn {
+            background-color: #051729;
+            color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            width: 100%;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .layer-btn:hover {
+            background-color: #2efad9;
+            transform: translateY(-3px);
+        }
+
         @media (max-width: 768px) {
                 .video-bg video {
                     height: 100%; 
@@ -232,12 +249,10 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#" data-target="home">LPA 1º Camada</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" data-target="home2">LPA 2º Camada</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" data-target="home3">LPA 3º Camada</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="realizarLPA">Realizar LPA</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" data-target="home4">Other Checks</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" data-target="analytics_dashboard">Analytics</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" data-target="settings">Settings</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-target="settings_home">Settings</a></li>
                 </ul>                
             </div>
         </div>
@@ -267,7 +282,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form action="/login" method="POST">
+                    <form id="loginForm">
                         <input type="hidden" id="redirect_page" name="redirect_page">
                         <div class="form-group">
                             <label for="username" style="color:black;">Username</label>
@@ -282,7 +297,28 @@
                         </div>
                     </form>
                     <p class="text-center mt-3">
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#modalForgotPassword">Esqueceu-se da sua palavra-passe?</a>                    </p>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#modalForgotPassword">Esqueceu-se da sua palavra-passe?</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalAdminLayerSelection" tabindex="-1" role="dialog" aria-labelledby="modalAdminLayerSelectionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAdminLayerSelectionLabel">Escolha a Camada LPA</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <h6 class="mb-4">Selecione a camada LPA que deseja aceder:</h6>
+                        <button type="button" class="layer-btn mb-3" data-page="home">LPA 1º Camada</button>
+                        <button type="button" class="layer-btn mb-3" data-page="2_camada">LPA 2º Camada</button>
+                        <button type="button" class="layer-btn" data-page="3_camada">LPA 3º Camada</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -290,13 +326,90 @@
 
     {% include 'reset_password.html' %}
     <script>
-        document.querySelectorAll('.nav-link').forEach(function (item) {
+        // Handle regular menu items
+        document.querySelectorAll('.nav-link:not(#realizarLPA)').forEach(function (item) {
             item.addEventListener('click', function () {
                 var targetPage = this.getAttribute("data-target"); 
                 document.getElementById("redirect_page").value = targetPage || "index"; 
-        
+                
+                // Regular form submission for normal menu items
+                var loginForm = document.getElementById('loginForm');
+                loginForm.action = "/login";
+                loginForm.method = "POST";
+                
                 var myModal = new bootstrap.Modal(document.getElementById('modalLogin'));
                 myModal.show();
+            });
+        });
+
+        // Special handler for "Realizar LPA" link
+        document.getElementById('realizarLPA').addEventListener('click', function() {
+            // Show login modal first
+            var loginModal = new bootstrap.Modal(document.getElementById('modalLogin'));
+            var loginForm = document.getElementById('loginForm');
+            
+            // Remove previous event listeners
+            var newLoginForm = loginForm.cloneNode(true);
+            loginForm.parentNode.replaceChild(newLoginForm, loginForm);
+            loginForm = newLoginForm;
+            
+            // Handle form submission for "Realizar LPA"
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault(); // Prevent normal form submission
+                
+                var formData = new FormData(this);
+                formData.append('is_lpa_login', 'true'); // Add flag for LPA login
+                
+                fetch('/login', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loginModal.hide();
+                        
+                        if (data.role === 'admin') {
+                            // For admin, show the layer selection modal
+                            setTimeout(function() {
+                                var adminModal = new bootstrap.Modal(document.getElementById('modalAdminLayerSelection'));
+                                adminModal.show();
+                            }, 500);
+                        } else {
+                            // For other roles, redirect to their specific page based on role
+                            if (data.role === 'TL') {
+                                window.location.href = '/home';
+                            } else if (data.role === 'PL') {
+                                window.location.href = '/2_camada';
+                            } else if (data.role === 'PLM') {
+                                window.location.href = '/3_camada';
+                            } else {
+                                // Fallback or for other roles
+                                toastr["error"]("Você não tem permissão para aceder esta página.");
+                            }
+                        }
+                    } else {
+                        // Login failed
+                        toastr["error"](data.message || "Credenciais inválidas. Tente novamente.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    toastr["error"]("Erro ao fazer login. Tente novamente.");
+                });
+            });
+            
+            loginModal.show();
+        });
+
+        // Layer selection buttons in admin modal
+        document.querySelectorAll('.layer-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const page = this.getAttribute('data-page');
+                window.location.href = '/' + page;
             });
         });
         
