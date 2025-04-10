@@ -112,6 +112,7 @@ def home():
         page_size = int(request.args.get('page_size', 7))
         offset = (page - 1) * page_size
 
+        # Carrega todas as linhas para o filtro dropdown
         if user_role == 'admin':
             query_linhas = "SELECT DISTINCT id, linha FROM linhas ORDER BY linha"
             cursor.execute(query_linhas)
@@ -120,82 +121,82 @@ def home():
                 SELECT DISTINCT l.id, l.linha
                 FROM linhas l
                 JOIN users_linhas lu ON l.id = lu.id_linha
-                WHERE lu.id_users = ? 
+                WHERE lu.id_users = ?
                 ORDER BY l.linha
             """
             cursor.execute(query_linhas, (user_id,))
-
         todas_linhas = [{"id": row[0], "linha": row[1]} for row in cursor.fetchall()]
 
-        query_paged_lines = """
-        SELECT DISTINCT linhas.id, linhas.linha
-        FROM linhas
-        """
+        # Query base para linhas paginadas
+        query_paged_lines = "SELECT DISTINCT linhas.id, linhas.linha FROM linhas"
+        filters = []
         params = []
 
         if user_role != 'admin':
-            query_paged_lines += """
-                JOIN users_linhas lu ON linhas.id = lu.id_linha
-                WHERE lu.id_users = ?
-            """
+            query_paged_lines += " JOIN users_linhas lu ON linhas.id = lu.id_linha"
+            filters.append("lu.id_users = ?")
             params.append(user_id)
 
         if filtro_linha:
-            query_paged_lines += " AND linhas.id = ?"
+            filters.append("linhas.id = ?")
             params.append(filtro_linha)
 
+        # Adiciona filtros, se houver
+        if filters:
+            query_paged_lines += " WHERE " + " AND ".join(filters)
+
+        # Query total de linhas
         query_total_lines = query_paged_lines.replace(
             "SELECT DISTINCT linhas.id, linhas.linha",
             "SELECT COUNT(DISTINCT linhas.id)"
         )
-
         cursor.execute(query_total_lines, params)
         total_lines = cursor.fetchone()[0]
         total_pages = (total_lines + page_size - 1) // page_size
 
+        # Paginação
         page = max(1, min(page, total_pages))
         offset = (page - 1) * page_size
-
         query_paged_lines += " ORDER BY linhas.linha OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
         params.extend([offset, page_size])
-
         cursor.execute(query_paged_lines, params)
         paged_lines = cursor.fetchall()
 
         current_page_line_ids = [row[0] for row in paged_lines]
+        lpas_result = []
 
         if current_page_line_ids:
             placeholders = ','.join(['?' for _ in current_page_line_ids])
             query_lpas = f"""
-            SELECT l.id AS linha_id, l.linha, 
-                LPA.data_auditoria, LPA.turno, 
-                p.username AS auditor, 
-                LPA.resposta, LPA.registo_peca
-            FROM linhas l
-            LEFT JOIN linha_pergunta lp ON l.id = lp.linha_id
-            LEFT JOIN LPA ON lp.id = LPA.linha_pergunta_id
-            LEFT JOIN users p ON LPA.id_user = p.id
-            WHERE l.id IN ({placeholders})
-            ORDER BY l.linha, LPA.turno
+                SELECT l.id AS linha_id, l.linha, 
+                    LPA.data_auditoria, LPA.turno, 
+                    p.name AS auditor, 
+                    LPA.resposta, LPA.registo_peca
+                FROM linhas l
+                LEFT JOIN linha_pergunta lp ON l.id = lp.linha_id
+                LEFT JOIN LPA ON lp.id = LPA.linha_pergunta_id
+                LEFT JOIN users p ON LPA.id_user = p.id
+                WHERE l.id IN ({placeholders})
+                ORDER BY l.linha, LPA.turno
             """
             cursor.execute(query_lpas, current_page_line_ids)
             lpas_result = cursor.fetchall()
 
-
         conn.close()
 
+        # Mostra todos os turnos se nenhum for selecionado
         turnos_para_mostrar = ['Manhã', 'Tarde', 'Noite'] if not turno else [turno]
 
+        # Monta estrutura para template
         linhas_com_estado = []
-        for linha_id, linha_nome in [(row[0], row[1]) for row in paged_lines]:
+        for linha_id, linha_nome in paged_lines:
             linha_info = {"id": linha_id, "linha": linha_nome, "lpas": []}
 
             for t in turnos_para_mostrar:
                 lpa_info = next(
-                    (lpa for lpa in lpas_result if lpa[0] == linha_id and lpa[3] == t), 
+                    (lpa for lpa in lpas_result if lpa[0] == linha_id and lpa[3] == t),
                     None
                 )
-
                 lpa_obj = {
                     "turno": t,
                     "estado": "Realizado" if lpa_info else "Por Realizar",
@@ -203,23 +204,25 @@ def home():
                     "data_auditoria": lpa_info[2] if lpa_info else None,
                     "resposta": lpa_info[5] if lpa_info else None
                 }
-
                 linha_info["lpas"].append(lpa_obj)
 
             linhas_com_estado.append(linha_info)
 
-        return render_template('home.html', 
-                               linhas=linhas_com_estado,
-                               turno=turno,
-                               filtro_linha=filtro_linha,  
-                               todas_linhas=todas_linhas,  
-                               page=page,
-                               total_pages=total_pages,  
-                               page_size=page_size)
+        return render_template(
+            'home.html',
+            linhas=linhas_com_estado,
+            turno=turno,
+            filtro_linha=filtro_linha,
+            todas_linhas=todas_linhas,
+            page=page,
+            total_pages=total_pages,
+            page_size=page_size
+        )
 
     except Exception as e:
         flash(f'Erro ao carregar LPAs: {str(e)}', 'error')
         return redirect(url_for('index'))
+
 
 
 @app.route('/create_lpa')
@@ -561,10 +564,11 @@ def incidencias():
         SELECT 
             i.id, 
             l.linha, 
-            COALESCE(lpa_2.data_auditoria, lpa.data_auditoria) AS data_auditoria,
+            COALESCE(lpa_3.data_auditoria, lpa_2.data_auditoria, lpa.data_auditoria) AS data_auditoria,
             CASE 
-                WHEN i.camada = 2 THEN p2.username  -- Se for 2ª camada, pega o auditor da 2ª camada
-                ELSE p1.username  -- Se não, pega o auditor da 1ª camada
+                WHEN i.camada = 3 THEN p3.username
+                WHEN i.camada = 2 THEN p2.username
+                ELSE p1.username
             END AS auditor, 
             COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
             i.nao_conformidade, 
@@ -572,27 +576,33 @@ def incidencias():
             i.prazo,
             i.resolvido,
             i.comentario_resolucao,
-            i.camada  -- Adicionando camada para diferenciação
+            i.camada
         FROM dbo.Incidencias i
-        LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1  -- Apenas para camada 1
-        LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2  -- Apenas para camada 2
-        LEFT JOIN dbo.users p1 ON lpa.id_user = p1.id  -- Auditor da 1ª camada
-        LEFT JOIN dbo.users p2 ON lpa_2.id_user = p2.id  -- Auditor da 2ª camada
-        JOIN dbo.linha_pergunta lp ON COALESCE(lpa.linha_pergunta_id, lpa_2.linha_pergunta_id) = lp.id
-        JOIN dbo.linhas l ON lp.linha_id = l.id
+        LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1
+        LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2
+        LEFT JOIN dbo.LPA_3 lpa_3 ON i.id_LPA = lpa_3.id AND i.camada = 3
+        LEFT JOIN dbo.users p1 ON lpa.id_user = p1.id
+        LEFT JOIN dbo.users p2 ON lpa_2.id_user = p2.id
+        LEFT JOIN dbo.users p3 ON lpa_3.id_user = p3.id
+        LEFT JOIN dbo.linha_pergunta lp ON COALESCE(
+            lpa.linha_pergunta_id, 
+            lpa_2.linha_pergunta_id, 
+            lpa_3.linha_pergunta_id
+        ) = lp.id
+        LEFT JOIN dbo.linhas l ON lp.linha_id = l.id
         LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
         LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
-        WHERE 1=1  
+        WHERE 1=1
         """
 
         params = []
 
         if data_inicio:
-            query += " AND CONVERT(DATE, COALESCE(lpa.data_auditoria, lpa_2.data_auditoria)) >= CONVERT(DATE, ?)"
+            query += " AND CONVERT(DATE, COALESCE(lpa.data_auditoria, lpa_2.data_auditoria, lpa_3.data_auditoria)) >= CONVERT(DATE, ?)"
             params.append(data_inicio)
 
         if data_fim:
-            query += " AND CONVERT(DATE, COALESCE(lpa.data_auditoria, lpa_2.data_auditoria)) <= CONVERT(DATE, ?)"
+            query += " AND CONVERT(DATE, COALESCE(lpa.data_auditoria, lpa_2.data_auditoria, lpa_3.data_auditoria)) <= CONVERT(DATE, ?)"
             params.append(data_fim)
 
         query += " ORDER BY data_auditoria DESC"
@@ -616,11 +626,11 @@ def incidencias():
                 "prazo": row[7],
                 "resolvido": row[8] if row[8] is not None else None, 
                 "comentario_resolucao": row[9],
-                "camada": row[10]  # Adicionando camada na resposta
+                "camada": row[10]
             }
             incidencias.append(incidencia)
 
-        return render_template('incidencias.html', 
+        return render_template('incidencias/incidencias.html', 
                               incidencias=incidencias, 
                               data_inicio=data_inicio,
                               data_fim=data_fim)
@@ -628,6 +638,7 @@ def incidencias():
     except Exception as e:
         flash(f'Erro ao carregar incidências: {str(e)}', 'error')
         return redirect(url_for('index'))
+
 
 
     
@@ -733,9 +744,9 @@ def resolver_incidencia():
         }
         
         if incidencia[9] == 'False':  
-            return render_template('verificar_incidencia.html', incidencia=incidencia_dict)
+            return render_template('incidencias/verificar_incidencia.html', incidencia=incidencia_dict)
         else:
-            return render_template('resolver_incidencia.html', incidencia=incidencia_dict)
+            return render_template('incidencias/resolver_incidencia.html', incidencia=incidencia_dict)
     
     except Exception as e:
         flash(f'Erro ao carregar a incidência: {str(e)}', 'error')
@@ -755,86 +766,78 @@ def home2():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 🔹 Obter o filtro da linha e a página
         filtro_linha = request.args.get('linha', '')
         page = int(request.args.get('page', 1))
         page_size = int(request.args.get('page_size', 18))
         offset = (page - 1) * page_size
 
-        # 🔹 Obter as linhas para o filtro (Admin vê todas, PL vê as associadas)
+        # 🔹 Linhas disponíveis para o filtro
         if user_role == 'admin':
-            query_linhas = "SELECT DISTINCT id, linha FROM linhas ORDER BY linha"
-            cursor.execute(query_linhas)
+            cursor.execute("SELECT DISTINCT id, linha FROM linhas ORDER BY linha")
         else:
-            query_linhas = """
+            cursor.execute("""
                 SELECT DISTINCT l.id, l.linha
                 FROM linhas l
                 JOIN users_linhas lu ON l.id = lu.id_linha
                 WHERE lu.id_users = ?
                 ORDER BY l.linha
-            """
-            cursor.execute(query_linhas, (user_id,))
-
+            """, (user_id,))
         todas_linhas = [{"id": row[0], "linha": row[1]} for row in cursor.fetchall()]
 
-        # 🔹 Obter linhas paginadas
-        query_paged_lines = """
-        SELECT DISTINCT l.id, l.linha
-        FROM linhas l
-        """
+        # 🔹 Construção da query de paginação
+        query_paged_lines = "SELECT DISTINCT l.id, l.linha FROM linhas l"
         params = []
+        where_clauses = []
 
         if user_role != 'admin':
-            query_paged_lines += """
-                JOIN users_linhas lu ON l.id = lu.id_linha
-                WHERE lu.id_users = ?
-            """
+            query_paged_lines += " JOIN users_linhas lu ON l.id = lu.id_linha"
+            where_clauses.append("lu.id_users = ?")
             params.append(user_id)
 
         if filtro_linha:
-            query_paged_lines += " AND l.id = ?"
+            where_clauses.append("l.id = ?")
             params.append(filtro_linha)
 
+        if where_clauses:
+            query_paged_lines += " WHERE " + " AND ".join(where_clauses)
+
         query_total_lines = query_paged_lines.replace(
-            "SELECT DISTINCT l.id, l.linha",
-            "SELECT COUNT(DISTINCT l.id)"
+            "SELECT DISTINCT l.id, l.linha", "SELECT COUNT(DISTINCT l.id)"
         )
 
         cursor.execute(query_total_lines, params)
         total_lines = cursor.fetchone()[0]
         total_pages = (total_lines + page_size - 1) // page_size
-
         page = max(1, min(page, total_pages))
         offset = (page - 1) * page_size
 
         query_paged_lines += " ORDER BY l.linha OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
         params.extend([offset, page_size])
-
         cursor.execute(query_paged_lines, params)
         paged_lines = cursor.fetchall()
 
         current_page_line_ids = [row[0] for row in paged_lines]
 
-        # 🔹 Buscar LPAs da 2ª Camada
+        # 🔹 Buscar dados da 2ª camada
         if current_page_line_ids:
             placeholders = ','.join(['?' for _ in current_page_line_ids])
             query_lpas_2 = f"""
-            SELECT l.id AS linha_id, l.linha, 
-                   LPA_2.data_auditoria, p.username AS auditor, 
-                   LPA_2.resposta, LPA_2.registo_peca
-            FROM linhas l
-            LEFT JOIN (
-                SELECT lp.linha_id, MAX(LPA_2.data_auditoria) as max_date
-                FROM LPA_2
-                JOIN linha_pergunta lp ON LPA_2.linha_pergunta_id = lp.id
-                GROUP BY lp.linha_id
-            ) recent ON l.id = recent.linha_id
-            LEFT JOIN linha_pergunta lp ON l.id = lp.linha_id
-            LEFT JOIN LPA_2 ON lp.id = LPA_2.linha_pergunta_id AND 
-                             (recent.max_date IS NULL OR LPA_2.data_auditoria = recent.max_date)
-            LEFT JOIN users p ON LPA_2.id_user = p.id
-            WHERE l.id IN ({placeholders})
-            ORDER BY l.linha
+                SELECT l.id AS linha_id, l.linha, 
+                       LPA_2.data_auditoria, p.name AS auditor, 
+                       LPA_2.resposta, LPA_2.registo_peca
+                FROM linhas l
+                LEFT JOIN (
+                    SELECT lp.linha_id, MAX(LPA_2.data_auditoria) as max_date
+                    FROM LPA_2
+                    JOIN linha_pergunta lp ON LPA_2.linha_pergunta_id = lp.id
+                    GROUP BY lp.linha_id
+                ) recent ON l.id = recent.linha_id
+                LEFT JOIN linha_pergunta lp ON l.id = lp.linha_id
+                LEFT JOIN LPA_2 ON lp.id = LPA_2.linha_pergunta_id 
+                                AND (recent.max_date IS NULL OR LPA_2.data_auditoria = recent.max_date)
+                LEFT JOIN users p ON LPA_2.id_user = p.id
+                WHERE l.id IN ({placeholders})
+                ORDER BY l.linha
             """
             cursor.execute(query_lpas_2, current_page_line_ids)
             lpas_result = [
@@ -853,17 +856,10 @@ def home2():
 
         conn.close()
 
-        # 🔹 Organizar os dados para o template
+        # 🔹 Organizar dados
         linhas_com_estado = []
-        for linha_id, linha_nome in [(row[0], row[1]) for row in paged_lines]:
-            linha_info = {
-                "id": linha_id,
-                "linha": linha_nome,
-                "lpas": []
-            }
-
+        for linha_id, linha_nome in paged_lines:
             lpa_info = next((lpa for lpa in lpas_result if lpa["linha_id"] == linha_id), None)
-
             lpa_obj = {
                 "turno": "N/A",
                 "estado": "Realizado" if lpa_info and lpa_info["resposta"] else "Por Realizar",
@@ -872,8 +868,11 @@ def home2():
                 "resposta": lpa_info["resposta"] if lpa_info else None
             }
 
-            linha_info["lpas"].append(lpa_obj)
-            linhas_com_estado.append(linha_info)
+            linhas_com_estado.append({
+                "id": linha_id,
+                "linha": linha_nome,
+                "lpas": [lpa_obj]
+            })
 
         return render_template('2_camada/home2.html', 
                                linhas=linhas_com_estado,
@@ -886,6 +885,7 @@ def home2():
     except Exception as e:
         flash(f'Erro ao carregar LPAs: {str(e)}', 'error')
         return redirect(url_for('index'))
+
 
 
 @app.route('/create_lpa2')
@@ -1282,6 +1282,116 @@ def incidencias2():
         return redirect(url_for('index'))
 
 
+@app.route('/resolver_incidencia2', methods=['GET', 'POST'])
+def resolver_incidencia2():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    try:
+        request_id = request.args.get('id', '')
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT Nr_Colaborador FROM dbo.users WHERE id = ?", (session['user_id'],))
+        logged_in_user = cursor.fetchone()
+
+        if request.method == 'POST':
+            if 'id_colaborador' in request.form:
+                id_colaborador = request.form.get('id_colaborador')
+
+                if not logged_in_user or str(id_colaborador) != str(logged_in_user[0]):
+                    conn.close()
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return jsonify({"success": False, "error": "Número de colaborador inválido."}), 400
+                    else:
+                        flash("Número de colaborador inválido.", "danger")
+                        return redirect(url_for('incidencias'))
+
+                cursor.execute("""
+                    UPDATE dbo.Incidencias
+                    SET resolvido = 'True',
+                        comentario_resolucao = CONCAT(comentario_resolucao,
+                        CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
+                        'Verificado por: ', ?)
+                    WHERE id = ?
+                """, (id_colaborador, request_id))
+
+                cursor.execute("""
+                    UPDATE dbo.LPA_2
+                    SET resposta = 'OK'
+                    WHERE id = (SELECT id_LPA FROM dbo.Incidencias WHERE id = ?)
+                """, (request_id,))
+            else:
+                comentario_resolucao = request.form.get('comentario')
+
+                cursor.execute("""
+                    UPDATE dbo.Incidencias
+                    SET resolvido = 'False', comentario_resolucao = ?
+                    WHERE id = ?
+                """, (comentario_resolucao, request_id))
+
+            conn.commit()
+            conn.close()
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": True})
+
+            return redirect(url_for('incidencias'))
+
+        # GET request - Exibir o formulário
+  
+        query = """
+            SELECT
+                i.id,
+                l.linha,
+                lpa2.data_auditoria,
+                p.username AS auditor,
+                COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
+                i.nao_conformidade,
+                i.acao_corretiva,
+                i.prazo,
+                i.resolvido,
+                i.comentario_resolucao
+            FROM dbo.Incidencias i
+            JOIN dbo.LPA_2 lpa2 ON i.id_LPA = lpa2.id
+            JOIN dbo.linha_pergunta lp ON lpa2.linha_pergunta_id = lp.id
+            JOIN dbo.linhas l ON lp.linha_id = l.id
+            LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
+            LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
+            JOIN dbo.users p ON lpa2.id_user = p.id
+            WHERE i.id = ?
+        """
+
+        cursor.execute(query, (request_id,))
+        incidencia = cursor.fetchone()
+        conn.close()
+
+        if not incidencia:
+            flash("Incidência não encontrada!", "danger")
+            return redirect(url_for('incidencias'))
+
+        data_formatada = incidencia[2].strftime('%d/%m/%y') if incidencia[2] else None
+        incidencia_dict = {
+            "id": incidencia[0],
+            "linha": incidencia[1],
+            "data_auditoria": data_formatada,
+            "auditor": incidencia[3],
+            "pergunta": incidencia[4],
+            "nao_conformidade": incidencia[5],
+            "acao_corretiva": incidencia[6],
+            "prazo": incidencia[7],
+            "resolvido": incidencia[8],
+            "comentario_resolucao": incidencia[9]
+        }
+
+        if incidencia[9] == 'False':
+            return render_template('2_camada/verificar_incidencia2.html', incidencia=incidencia_dict)
+        else:
+            return render_template('2_camada/resolver_incidencia2.html', incidencia=incidencia_dict)
+
+    except Exception as e:
+        print(f'Erro ao carregar a incidência: {str(e)}', 'error')
+        return redirect(url_for('incidencias2'))
 
 
     #########################  FIM 2º CAMADA #####################################
@@ -1322,28 +1432,28 @@ def home3():
 
         todas_linhas = [{"id": row[0], "linha": row[1]} for row in cursor.fetchall()]
 
-        # 🔹 Obter linhas paginadas
-        query_paged_lines = """
-        SELECT DISTINCT l.id, l.linha
-        FROM linhas l
-        """
+        query_paged_lines = "SELECT DISTINCT l.id, l.linha FROM linhas l"
+        where_clauses = []
         params = []
 
         if user_role != 'admin':
-            query_paged_lines += """
-                JOIN users_linhas lu ON l.id = lu.id_linha
-                WHERE lu.id_users = ?
-            """
+            query_paged_lines += " JOIN users_linhas lu ON l.id = lu.id_linha"
+            where_clauses.append("lu.id_users = ?")
             params.append(user_id)
 
         if filtro_linha:
-            query_paged_lines += " AND l.id = ?"
+            where_clauses.append("l.id = ?")
             params.append(filtro_linha)
 
+        if where_clauses:
+            query_paged_lines += " WHERE " + " AND ".join(where_clauses)
+
+        # Total de páginas
         query_total_lines = query_paged_lines.replace(
             "SELECT DISTINCT l.id, l.linha",
             "SELECT COUNT(DISTINCT l.id)"
         )
+
 
         cursor.execute(query_total_lines, params)
         total_lines = cursor.fetchone()[0]
@@ -1365,7 +1475,7 @@ def home3():
             placeholders = ','.join(['?' for _ in current_page_line_ids])
             query_lpas_3 = f"""
             SELECT l.id AS linha_id, l.linha, 
-                   LPA_3.data_auditoria, p.username AS auditor, 
+                   LPA_3.data_auditoria, p.name AS auditor, 
                    LPA_3.resposta, LPA_3.registo_peca
             FROM linhas l
             LEFT JOIN (
@@ -1610,7 +1720,7 @@ def save_lpa3():
                         INSERT INTO dbo.Incidencias (id_LPA, nao_conformidade, acao_corretiva, prazo, camada)
                         VALUES (?, ?, ?, ?, ?)
                     """
-                    cursor.execute(insert_incidencia_query, (lpa2_id, nao_conformidade, acao_corretiva, prazo, 2))  # Adiciona camada 2
+                    cursor.execute(insert_incidencia_query, (lpa2_id, nao_conformidade, acao_corretiva, prazo, 3)) 
 
         conn.commit()
         return jsonify({"success": "LPA 3ª Camada guardado com sucesso!"})
@@ -1825,6 +1935,118 @@ def incidencias3():
     except Exception as e:
         print(f'Erro ao carregar incidências: {str(e)}', 'error')
         return redirect(url_for('index'))
+    
+@app.route('/resolver_incidencia3', methods=['GET', 'POST'])
+def resolver_incidencia3():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    try:
+        request_id = request.args.get('id', '')
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT Nr_Colaborador FROM dbo.users WHERE id = ?", (session['user_id'],))
+        logged_in_user = cursor.fetchone()
+
+        if request.method == 'POST':
+            if 'id_colaborador' in request.form:
+                id_colaborador = request.form.get('id_colaborador')
+
+                if not logged_in_user or str(id_colaborador) != str(logged_in_user[0]):
+                    conn.close()
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return jsonify({"success": False, "error": "Número de colaborador inválido."}), 400
+                    else:
+                        flash("Número de colaborador inválido.", "danger")
+                        return redirect(url_for('incidencias'))
+
+                cursor.execute("""
+                    UPDATE dbo.Incidencias
+                    SET resolvido = 'True',
+                        comentario_resolucao = CONCAT(comentario_resolucao,
+                        CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
+                        'Verificado por: ', ?)
+                    WHERE id = ?
+                """, (id_colaborador, request_id))
+
+                cursor.execute("""
+                    UPDATE dbo.LPA_3
+                    SET resposta = 'OK'
+                    WHERE id = (SELECT id_LPA FROM dbo.Incidencias WHERE id = ?)
+                """, (request_id,))
+            else:
+                comentario_resolucao = request.form.get('comentario')
+
+                cursor.execute("""
+                    UPDATE dbo.Incidencias
+                    SET resolvido = 'False', comentario_resolucao = ?
+                    WHERE id = ?
+                """, (comentario_resolucao, request_id))
+
+            conn.commit()
+            conn.close()
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": True})
+
+            return redirect(url_for('incidencias'))
+
+        # GET request - Exibir o formulário
+  
+        query = """
+            SELECT
+                i.id,
+                l.linha,
+                lpa3.data_auditoria,
+                p.username AS auditor,
+                COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
+                i.nao_conformidade,
+                i.acao_corretiva,
+                i.prazo,
+                i.resolvido,
+                i.comentario_resolucao
+            FROM dbo.Incidencias i
+            JOIN dbo.LPA_3 lpa3 ON i.id_LPA = lpa3.id
+            JOIN dbo.linha_pergunta lp ON lpa3.linha_pergunta_id = lp.id
+            JOIN dbo.linhas l ON lp.linha_id = l.id
+            LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
+            LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
+            JOIN dbo.users p ON lpa3.id_user = p.id
+            WHERE i.id = ?
+        """
+
+        cursor.execute(query, (request_id,))
+        incidencia = cursor.fetchone()
+        conn.close()
+
+        if not incidencia:
+            flash("Incidência não encontrada!", "danger")
+            return redirect(url_for('incidencias'))
+
+        data_formatada = incidencia[2].strftime('%d/%m/%y') if incidencia[2] else None
+        incidencia_dict = {
+            "id": incidencia[0],
+            "linha": incidencia[1],
+            "data_auditoria": data_formatada,
+            "auditor": incidencia[3],
+            "pergunta": incidencia[4],
+            "nao_conformidade": incidencia[5],
+            "acao_corretiva": incidencia[6],
+            "prazo": incidencia[7],
+            "resolvido": incidencia[8],
+            "comentario_resolucao": incidencia[9]
+        }
+
+        if incidencia[9] == 'False':
+            return render_template('3_camada/verificar_incidencia2.html', incidencia=incidencia_dict)
+        else:
+            return render_template('3_camada/resolver_incidencia2.html', incidencia=incidencia_dict)
+
+    except Exception as e:
+        print(f'Erro ao carregar a incidência: {str(e)}', 'error')
+        return redirect(url_for('incidencias3'))
+
 
 
 

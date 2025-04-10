@@ -60,7 +60,7 @@
                                                 <td><span class="badge badge-success">Realizado</span></td>
                                                 <td>{{ lpa_2.auditor }}</td>
                                                 <td>
-                                                    <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#lpaModal" 
+                                                    <button class="btn btn-info btn-sm btn-sm-mobile" data-toggle="modal" data-target="#lpaModal" 
                                                         onclick="verDetalhes2('{{ linha.linha }}', '{{ lpa_2.data_auditoria }}', '{{ lpa_2.auditor }}')">
                                                         Ver Dados
                                                     </button>
@@ -70,7 +70,7 @@
                                                 <td>{{ lpa_2.auditor }}</td>
                                                 <td>
                                                     <a href="{{ url_for('create_lpa2', linha_id=linha.id) }}" 
-                                                       class="btn btn-primary btn-sm">
+                                                       class="btn btn-primary btn-sm btn-sm-mobile">
                                                         Realizar 2ª Camada
                                                     </a>
                                                 </td>                                                        

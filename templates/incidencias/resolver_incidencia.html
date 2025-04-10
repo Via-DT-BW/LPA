@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+{% include 'incidencias/components/head.html' %}
+{% block content %}
+<body id="page-top">
+    {% include 'incidencias/components/navbar.html' %}
+    <div id="content">
+        <div class="container-fluid px-4 py-3">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="font-weight-bold text-primary mb-0">Resolver Incidência</h6>
+                    <a href="{{ url_for('incidencias') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    <div class="card mb-4 border-left-danger">
+                        <div class="card-header bg-light py-3">
+                            <h5 class="font-weight-bold text-danger m-0">
+                                <i class="fas fa-clipboard-list mr-2"></i>Problema Identificado
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                <!-- Seção de Informações Básicas -->
+                                <div class="list-group-item bg-light py-2">
+                                    <h6 class="font-weight-bold text-gray-800 mb-0">Informações Gerais</h6>
+                                </div>
+                                
+                                <div class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-12 col-md-6 mb-2 mb-md-0">
+                                            <div class="d-flex align-items-center">
+                                                <div class="font-weight-bold text-primary mr-3 label-width text-right">Linha:</div>
+                                                <div class="flex-grow-1">{{ incidencia.linha }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <div class="font-weight-bold text-primary mr-3 label-width text-right">Auditor:</div>
+                                                <div class="flex-grow-1">{{ incidencia.auditor }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="list-group-item">
+                                    <div class="d-flex align-items-center">
+                                        <div class="font-weight-bold text-primary mr-3 label-width text-right">Data:</div>
+                                        <div class="flex-grow-1">{{ incidencia.data_auditoria }}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Seção de Detalhes do Problema -->
+                                <div class="list-group-item bg-light py-2">
+                                    <h6 class="font-weight-bold text-gray-800 mb-0">Detalhes do Problema</h6>
+                                </div>
+                                
+                                <div class="list-group-item">
+                                    <div class="row no-gutters">
+                                        <div class="col-md-3 col-lg-2">
+                                            <div class="font-weight-bold text-primary py-1">Pergunta:</div>
+                                        </div>
+                                        <div class="col-md-9 col-lg-10">
+                                            <div class="py-1 px-md-3">{{ incidencia.pergunta }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="list-group-item">
+                                    <div class="row no-gutters">
+                                        <div class="col-md-3 col-lg-2">
+                                            <div class="font-weight-bold text-primary py-1">Não Conformidade:</div>
+                                        </div>
+                                        <div class="col-md-9 col-lg-10">
+                                            <div class="py-1 px-md-3 alert alert-danger mb-0 py-2">{{ incidencia.nao_conformidade }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="list-group-item">
+                                    <div class="row no-gutters">
+                                        <div class="col-md-3 col-lg-2">
+                                            <div class="font-weight-bold text-primary py-1">Ação Corretiva:</div>
+                                        </div>
+                                        <div class="col-md-9 col-lg-10">
+                                            <div class="py-1 px-md-3">{{ incidencia.acao_corretiva }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="list-group-item">
+                                    <div class="row no-gutters">
+                                        <div class="col-md-3 col-lg-2">
+                                            <div class="font-weight-bold text-primary py-1">Prazo:</div>
+                                        </div>
+                                        <div class="col-md-9 col-lg-10">
+                                            <div class="py-1 px-md-3 font-weight-bold">{{ incidencia.prazo }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="list-group-item">
+                                    <div class="row no-gutters">
+                                        <div class="col-md-3 col-lg-2">
+                                            <div class="font-weight-bold text-primary py-1">Resposta:</div>
+                                        </div>
+                                        <div class="col-md-9 col-lg-10">
+                                            <div class="py-1 px-md-3">{{ incidencia.resposta }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulário de Resolução -->
+                    <form id="resolverForm">
+                        <div class="card mb-4 border-left-success">
+                            <div class="card-header bg-light py-3">
+                                <h5 class="font-weight-bold text-success m-0">
+                                    <i class="fas fa-check-circle mr-2"></i>Resolução
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="comentario"><strong>Comentário de Resolução</strong></label>
+                                    <textarea class="form-control" id="comentario" name="comentario" rows="4" placeholder="Descreva como o problema foi resolvido..." required></textarea>
+                                    <small class="form-text text-muted">Descreva as ações tomadas para resolver esta não conformidade.</small>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="d-flex flex-column flex-sm-row justify-content-center">
+                            <button type="submit" class="btn btn-success btn-lg mb-3 mb-sm-0 px-5">
+                                <i class="fas fa-check mr-2"></i> Confirmar Resolução
+                            </button>
+                            <a href="{{ url_for('incidencias') }}" class="btn btn-secondary btn-lg ml-sm-3">
+                                <i class="fas fa-times mr-2"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% include 'components/footer.html' %}
+    </div>
+
+    <style>
+        /* Estilização geral */
+        .card-header h5 {
+            letter-spacing: 0.5px;
+        }
+        
+        /* Largura fixa para as labels para alinhamento */
+        .label-width {
+            min-width: 80px;
+        }
+        
+        /* Estilização dos botões */
+        .btn-success, .btn-secondary {
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        /* Ajustes para itens da lista */
+        .list-group-item {
+            padding: 0.75rem 1rem;
+            border-left: none;
+            border-right: none;
+        }
+        
+        /* Borda mais suave */
+        .list-group-item:first-child {
+            border-top: none;
+        }
+        
+        /* Estilização para cabeçalhos de seção */
+        .list-group-item.bg-light {
+            background-color: #f8f9fc !important;
+        }
+        
+        /* Destaque para a não conformidade */
+        .alert-danger {
+            background-color: rgba(231, 74, 59, 0.1);
+            border-color: rgba(231, 74, 59, 0.2);
+            color: #e74a3b;
+        }
+        
+        /* Padding responsivo */
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            
+            .label-width {
+                min-width: 100px;
+                text-align: left !important;
+            }
+            
+            .btn-lg {
+                width: 100%;
+                padding: 0.75rem;
+                font-size: 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+        }
+    </style>
+    
+    <script>
+        $(document).ready(function() {
+            // Destacar o item que está sendo visualizado quando clicado
+            $(".list-group-item").click(function() {
+                $(this).toggleClass("bg-gray-100");
+            });
+            
+            $("#resolverForm").submit(function(event) {
+                event.preventDefault(); 
+        
+                var formData = $(this).serialize();
+                
+                // Botão de submit com loading
+                var $submitBtn = $(this).find('button[type="submit"]');
+                var originalText = $submitBtn.html();
+                $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> Processando...').prop('disabled', true);
+        
+                $.ajax({
+                    type: "POST",
+                    url: "{{ url_for('resolver_incidencia', id=incidencia.id) }}",
+                    data: formData,
+                    dataType: "json",
+                    success: function(response) {
+                        toastr.success('Incidência resolvida com sucesso!');
+                        setTimeout(function() {
+                            window.location.href = "{{ url_for('incidencias') }}"; 
+                        }, 1500); 
+                    },
+                    error: function(xhr) {
+                        var errorMsg = "Erro ao resolver a incidência. Tente novamente!";
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMsg = xhr.responseJSON.error;
+                        }
+                        toastr.error(errorMsg);
+                        $submitBtn.html(originalText).prop('disabled', false);
+                    }
+                });
+            });
+        });        
+    </script>
+</body>
+{% endblock %}
+</html>

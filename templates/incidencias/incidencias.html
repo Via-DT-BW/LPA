@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+{% include 'incidencias/components/head.html' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+{% block content %}
+<body id="page-top">
+    <div id="content">
+        {% include 'incidencias/components/navbar.html' %}
+        <div class="container-fluid flex-grow-1">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="font-weight-bold text-primary mb-0">Incidências NOK por Linha</h6>
+                </div>
+                <form method="GET" action="{{ url_for('incidencias') }}">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Filtro por Estado -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="estado">Filtrar por Estado</label>
+                                    <select name="estado" id="estado" class="form-control">
+                                        <option value="">Todos</option>
+                                        <option value="pendente" {% if estado == 'pendente' %}selected{% endif %}>Pendente</option>
+                                        <option value="resolvido" {% if estado == 'resolvido' %}selected{% endif %}>Resolvido</option>
+                                        <option value="por_realizar" {% if estado == 'por_realizar' %}selected{% endif %}>Por Realizar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Filtro por Linha -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="linha">Filtrar por Linha</label>
+                                    <select name="linha" id="linha" class="form-control">
+                                        <option value="">Todas</option>
+                                        {% for linha in linhas %}
+                                            <option value="{{ linha.id }}" {% if linha.id|string == linha_filtro %}selected{% endif %}>
+                                                {{ linha.nome }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Datas -->
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="data_inicio">Data Início</label>
+                                    <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ data_inicio }}">
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="data_fim">Data Fim</label>
+                                    <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ data_fim }}">
+                                </div>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary mb-3 w-100">Filtrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="card-body">
+                    <div class="row">
+                        {% for incidencia in incidencias %}
+                        <div class="col-md-4 col-12 mb-4">
+                            <div class="card shadow-sm border-left-primary h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                                    <h5 class="mb-0 text">{{ incidencia.linha }}</h5>
+                                    <span class="badge badge-info">{{ incidencia.camada }}ª Camada</span>
+                                </div>
+                                <div class="card-body d-flex flex-column">
+                                    <p class="mb-2"><strong>Auditor:</strong> {{ incidencia.auditor }}</p>
+                                    <p class="mb-4"><strong>Data de Criação:</strong> {{ incidencia.data_auditoria.strftime('%d-%m-%Y %H:%M') }}</p>
+                    
+                                    <div class="d-flex flex-column flex-sm-row justify-content-between mt-auto">
+                                        <button class="btn btn-outline-primary btn-sm mb-2" data-toggle="modal" data-target="#modalResolucao{{ incidencia.id }}">
+                                            <i class="fas fa-search"></i> Ver Detalhes
+                                        </button>
+                    
+                                        {% if incidencia.resolvido == 'True' %}
+                                        <button class="btn btn-success btn-sm mb-2">
+                                            <i class="fas fa-check"></i> Resolvido
+                                        </button>
+                                    {% elif incidencia.resolvido == 'False' %}
+                                        <button class="btn btn-warning btn-sm mb-2" onclick="abrirModal(this)" data-id="{{ incidencia.id }}">
+                                            <i class="fas fa-clock"></i> Pendente
+                                        </button>
+                                    {% else %}
+                                        <a href="{{ url_for('resolver_incidencia', id=incidencia.id) }}" class="btn btn-primary btn-sm mb-2">
+                                            <i class="fas fa-tools"></i> Resolver
+                                        </a>
+                                    {% endif %}
+                                    
+                                    
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'components/footer.html' %}
+
+    <!-- Modal de Resolução -->
+    {% for incidencia in incidencias %}
+    <div class="modal fade" id="modalResolucao{{ incidencia.id }}" tabindex="-1" role="dialog" aria-labelledby="modalResolucaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalResolucaoLabel">Detalhes da Incidência</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h6><strong>Não Conformidade:</strong></h6>
+                    <p>{{ incidencia.nao_conformidade }}</p>
+                
+                    <h6><strong>Ação Corretiva:</strong></h6>
+                    <p>{{ incidencia.acao_corretiva }}</p>
+                
+                    <h6><strong>Estado:</strong></h6>
+                    <p>
+                        {% if incidencia.resolvido == 'True' %}
+                            Resolvido e Verificado
+                        {% elif incidencia.resolvido == 'False' %}
+                            Resolução Pendente de Verificação
+                        {% else %}
+                            Pendente
+                        {% endif %}
+                    </p>
+                
+                    {% if incidencia.resolvido in ['True', 'False'] %}
+                        <h6><strong>Comentário:</strong></h6>
+                        <p class="whitespace-pre-line">{{ incidencia.comentario_resolucao }}</p>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modalVerificacao" tabindex="-1" role="dialog" aria-labelledby="modalVerificacaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+      
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalVerificacaoLabel">Verificação de Incidência</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+      
+            <div class="modal-body">
+              <p><strong>Não Conformidade:</strong> <span id="modal-nao-conformidade"></span></p>
+              <p><strong>Ação Corretiva:</strong> <span id="modal-acao-corretiva"></span></p>
+              <p><strong>Comentário:</strong> <span id="modal-comentario"></span></p>
+      
+              <hr>
+      
+              <div class="form-group">
+                <label for="modal-username">Username:</label>
+                <input type="text" id="modal-username" class="form-control">
+              </div>
+              <div class="form-group">
+                <label for="modal-password">Password:</label>
+                <input type="password" id="modal-password" class="form-control">
+              </div>
+      
+              <input type="hidden" id="modal-id-incidencia">
+      
+              <div id="modal-erro" class="text-danger mt-2" style="display: none;"></div>
+            </div>
+      
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger" onclick="rejeitarIncidencia()">Rejeitar</button>
+              <button type="button" class="btn btn-success" onclick="confirmarIncidencia()">Confirmar Incidência</button>
+            </div>
+      
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    <script>
+        {% include "incidencias/modal_incidencia.js" %}
+        </script>
+</body>
+{% endblock %}
+</html>
