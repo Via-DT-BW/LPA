@@ -1,18 +1,32 @@
 function toggleNokFields3(index, selectedValue) {
-    // Remove a classe 'selected' de todos os botões
+    // Remove a cor de fundo de todos os botões
     const buttons = document.querySelectorAll(`#ok${index}, #nok${index}, #nc${index}, #nt${index}`);
-    buttons.forEach(button => button.classList.remove("selected"));
+    buttons.forEach(button => {
+        button.style.backgroundColor = ""; 
+        button.style.color = ""; 
+    });
 
-    // Adiciona a classe 'selected' ao botão clicado
     const selectedButton = document.getElementById(`${selectedValue.toLowerCase()}${index}`);
-    selectedButton.classList.add("selected");
+    
+    if (selectedValue === "OK") {
+        selectedButton.style.backgroundColor = "#28a745"; 
+        selectedButton.style.color = "white"; 
+    } else if (selectedValue === "NOK") {
+        selectedButton.style.backgroundColor = "#dc3545"; 
+        selectedButton.style.color = "white"; 
+    } else if (selectedValue === "NC") {
+        selectedButton.style.backgroundColor = "#ffc107"; 
+        selectedButton.style.color = "white"; 
+    } else if (selectedValue === "NT") {
+        selectedButton.style.backgroundColor = "#6c757d";
+        selectedButton.style.color = "white"; 
+    }
 
-    // Exibe ou esconde o campo de descrição dependendo da opção
     const nokFields = document.getElementById(`nokFields${index}`);
     
     if (selectedValue === "NOK") {
-        nokFields.style.display = 'block'; // Exibe o campo de descrição
+        nokFields.style.display = 'block'; 
     } else {
-        nokFields.style.display = 'none'; // Esconde o campo de descrição
+        nokFields.style.display = 'none';
     }
 }

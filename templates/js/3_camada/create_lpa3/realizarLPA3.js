@@ -37,26 +37,24 @@ function realizarLPA3() {
                                     OBJETIVO: ${item.objetivo || "Não definido"}
                                 </small>
                                 <div class="btn-group mt-2" role="group" aria-label="Options">
-                            <button type="button" class="btn btn-outline-success" id="ok${index}" onclick="toggleNokFields3(${index}, 'OK')">
-                                <i class="fas fa-check-circle"></i> OK
-                            </button>
-                            <button type="button" class="btn btn-outline-danger" id="nok${index}" onclick="toggleNokFields3(${index}, 'NOK')">
-                                <i class="fas fa-times-circle"></i> NOK
-                            </button>
-                            <button type="button" class="btn btn-outline-warning" id="nc${index}" onclick="toggleNokFields3(${index}, 'NC')">
-                                <i class="fas fa-exclamation-circle"></i> NC
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" id="nt${index}" onclick="toggleNokFields3(${index}, 'NT')">
-                                <i class="fas fa-question-circle"></i> NT
-                            </button>
-                        </div>
-
+                                    <button type="button" class="btn btn-outline-success" id="ok${index}" onclick="toggleNokFields3(${index}, 'OK')">
+                                        <i class="fas fa-check-circle"></i> OK
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="nok${index}" onclick="toggleNokFields3(${index}, 'NOK')">
+                                        <i class="fas fa-times-circle"></i> NOK
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning" id="nc${index}" onclick="toggleNokFields3(${index}, 'NC')">
+                                        <i class="fas fa-exclamation-circle"></i> NC
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" id="nt${index}" onclick="toggleNokFields3(${index}, 'NT')">
+                                        <i class="fas fa-question-circle"></i> NT
+                                    </button>
                                 </div>
-                                <div id="nokFields${index}" class="nok-description mb-2">
-                                    <input type="text" class="form-control mt-2" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
-                                    <input type="text" class="form-control mt-2" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
-                                    <input type="date" class="form-control mt-2" id="prazo${index}">
-                                </div>
+                            </div>
+                            <div id="nokFields${index}" class="nok-description mb-2" style="display: none;">
+                                <input type="text" class="form-control mt-2" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
+                                <input type="text" class="form-control mt-2" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
+                                <input type="date" class="form-control mt-2" id="prazo${index}">
                             </div>
                         `;
                     });
@@ -72,4 +70,23 @@ function realizarLPA3() {
             console.error("Erro ao buscar dados do usuário:", error);
             toastr.error("Erro ao carregar os dados do usuário.", "Erro");
         });
+}
+
+function toggleNokFields3(index, selectedValue) {
+    // Remove a classe 'selected' de todos os botões
+    const buttons = document.querySelectorAll(`#ok${index}, #nok${index}, #nc${index}, #nt${index}`);
+    buttons.forEach(button => button.classList.remove("selected"));
+
+    // Adiciona a classe 'selected' ao botão clicado
+    const selectedButton = document.getElementById(`${selectedValue.toLowerCase()}${index}`);
+    selectedButton.classList.add("selected");
+
+    // Exibe ou esconde o campo de descrição dependendo da opção
+    const nokFields = document.getElementById(`nokFields${index}`);
+    
+    if (selectedValue === "NOK") {
+        nokFields.style.display = 'block'; // Exibe o campo de descrição
+    } else {
+        nokFields.style.display = 'none'; // Esconde o campo de descrição
+    }
 }
