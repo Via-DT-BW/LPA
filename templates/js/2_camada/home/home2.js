@@ -66,44 +66,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Toastr Notification Configuration
-    function configureToastr() {
-        if (typeof toastr !== 'undefined') {
-            toastr.options = {
-                "closeButton": true,
-                "debug": false,
-                "newestOnTop": false,
-                "progressBar": true,
-                "positionClass": "toast-top-right",
-                "preventDuplicates": false,
-                "onclick": null,
-                "showDuration": "300",
-                "hideDuration": "1000",
-                "timeOut": "5000",
-                "extendedTimeOut": "1000",
-                "showEasing": "swing",
-                "hideEasing": "linear",
-                "showMethod": "fadeIn",
-                "hideMethod": "fadeOut"
-            };
-
-            // Show success message if line filter applied
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('linha')) {
-                toastr.success('Filtro de linha aplicado com sucesso!', 'Filtro');
-            }
-        }
-    }
-
-    // Error Handling
-    function setupErrorHandling() {
-        window.addEventListener('error', function(event) {
-            console.error('Erro de script:', event.error);
-            if (typeof toastr !== 'undefined') {
-                toastr.error('Ocorreu um erro inesperado', 'Erro');
-            }
-        });
-    }
 
     // Initialize all functions
     function init() {

@@ -12,7 +12,7 @@
                 </div>
 
                 <form method="GET" action="{{ url_for('home2') }}">
-                    <div class="card-body">
+                    <div class="card-body border-bottom">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
@@ -35,51 +35,49 @@
                 </form>
 
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Linha</th>
-                                    <th>Data</th>
-                                    <th>Estado</th>
-                                    <th>Auditor</th>
-                                    <th>Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for linha in linhas %}
-                                    {% for lpa_2 in linha.lpas %}
-                                        <tr {% if loop.first %}class="border-top-0"{% endif %}>
-                                            {% if loop.first %}
-                                                <td rowspan="{{ linha.lpas|length }}" class="align-middle">{{ linha.linha }}</td>
-                                            {% endif %}
-                                            <td>
-                                                {{ lpa_2.data_auditoria.strftime('%d-%m-%Y %H:%M') if lpa_2.data_auditoria else 'Ainda não realizado' }}
-                                              </td>
-                                                {% if lpa_2.estado == "Realizado" %}
-                                                <td><span class="badge badge-success">Realizado</span></td>
-                                                <td>{{ lpa_2.auditor }}</td>
-                                                <td>
-                                                    <button class="btn btn-info btn-sm btn-sm-mobile" data-toggle="modal" data-target="#lpaModal" 
-                                                        onclick="verDetalhes2('{{ linha.linha }}', '{{ lpa_2.data_auditoria }}', '{{ lpa_2.auditor }}')">
-                                                        Ver Dados
-                                                    </button>
-                                                </td>
+            
+                    
+                    <!-- All cards in a single row layout -->
+                    <div class="row">
+                        {% set all_lpas = [] %}
+                        {% for linha in linhas %}
+                            {% for lpa in linha.lpas %}
+                                {% set lpa_with_linha = {'lpa': lpa, 'linha': linha} %}
+                                {% set _ = all_lpas.append(lpa_with_linha) %}
+                            {% endfor %}
+                        {% endfor %}
+                        
+                        {% for item in all_lpas %}
+                            <div class="col-md-4 mb-4">
+                                <div class="card shadow-sm border-left-primary h-100">
+                                    <div class="card-body d-flex flex-column">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="badge {% if item.lpa.estado == 'Realizado' %}badge-success{% else %}badge-warning{% endif %}">
+                                                {{ item.lpa.estado }}
+                                            </span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <p class="mb-1"><strong>Linha:</strong> {{ item.linha.linha }}</p>
+                                            <p class="mb-1"><strong>Auditor:</strong> {{ item.lpa.auditor }}</p>
+                                            <p class="mb-1"><strong>Data:</strong> {{ item.lpa.data_auditoria.strftime('%d-%m-%Y %H:%M') if item.lpa.data_auditoria else 'Ainda não realizado' }}</p>
+                                        </div>
+                                        <div class="d-flex justify-content-center mt-auto">
+                                            {% if item.lpa.estado == "Realizado" %}
+                                                <button class="btn btn-info" data-toggle="modal" data-target="#lpaModal" 
+                                                    onclick="verDetalhes2('{{ item.linha.linha }}', '{{ item.lpa.data_auditoria }}', '{{ item.lpa.auditor }}')">
+                                                    Ver Dados
+                                                </button>
                                             {% else %}
-                                                <td><span class="badge badge-warning">Por Realizar</span></td>
-                                                <td>{{ lpa_2.auditor }}</td>
-                                                <td>
-                                                    <a href="{{ url_for('create_lpa2', linha_id=linha.id) }}" 
-                                                       class="btn btn-primary btn-sm btn-sm-mobile">
-                                                        Realizar 2ª Camada
-                                                    </a>
-                                                </td>                                                        
+                                                <a href="{{ url_for('create_lpa2', linha_id=item.linha.id) }}" 
+                                                   class="btn btn-primary">
+                                                    Realizar 2ª Camada
+                                                </a>
                                             {% endif %}
-                                        </tr>
-                                    {% endfor %}
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
 
@@ -87,7 +85,7 @@
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-responsive justify-content-center flex-wrap">
                         <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                            <a class="page-link" href="?page={{ page-1 }}&linha={{ filtro_linha }}&data={{ filtro_data }}">
+                            <a class="page-link" href="?page={{ page-1 }}&linha={{ filtro_linha }}">
                                 <span class="d-none d-sm-inline">Anterior</span>
                                 <span class="d-inline d-sm-none">&laquo;</span>
                             </a>
@@ -95,12 +93,12 @@
 
                         {% for p in range(1, total_pages + 1) %}
                             <li class="page-item {% if p == page %}active{% endif %}">
-                                <a class="page-link" href="?page={{ p }}&linha={{ filtro_linha }}&data={{ filtro_data }}">{{ p }}</a>
+                                <a class="page-link" href="?page={{ p }}&linha={{ filtro_linha }}">{{ p }}</a>
                             </li>
                         {% endfor %}
 
                         <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-                            <a class="page-link" href="?page={{ page+1 }}&linha={{ filtro_linha }}&data={{ filtro_data }}">
+                            <a class="page-link" href="?page={{ page+1 }}&linha={{ filtro_linha }}">
                                 <span class="d-none d-sm-inline">Próximo</span>
                                 <span class="d-inline d-sm-none">&raquo;</span>
                             </a>
@@ -132,17 +130,30 @@
         </div>
     </div>
 
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
         {% include "js/2_camada/home/home2.js" %}
         {% include "js/2_camada/home/verLPA2.js" %}
-
-        {% if filtro_linha or filtro_data %}
+        
+        {% if filtro_linha %}
             toastr.success("Filtros aplicados com sucesso!", "Sucesso");
         {% endif %}
     </script>
+
+    <style>
+        /* Responsive adjustments */
+        @media (max-width: 767.98px) {
+            .col-md-4 {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
 </body>
 {% endblock %}
 </html>

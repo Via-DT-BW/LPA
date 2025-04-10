@@ -81,9 +81,13 @@
                                 <div class="list-group-item">
                                     <div class="row no-gutters">
                                         <div class="col-md-3 font-weight-bold text-primary py-1">Resposta:</div>
-                                        <div class="col-md-9 py-1 px-md-3">{{ incidencia.resposta }}</div>
+                                        <div class="col-md-9 py-1 px-md-3">
+                                            <span class="{% if incidencia.resposta == 'OK' %}status-ok{% else %}status-nok{% endif %}">
+                                                {{ incidencia.resposta }}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
+                                    
                             </div>
                         </div>
                     </div>

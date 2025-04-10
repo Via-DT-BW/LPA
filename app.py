@@ -561,40 +561,41 @@ def incidencias():
         data_fim = request.args.get('data_fim', '')
 
         query = """
-        SELECT 
-            i.id, 
-            l.linha, 
-            COALESCE(lpa_3.data_auditoria, lpa_2.data_auditoria, lpa.data_auditoria) AS data_auditoria,
-            CASE 
-                WHEN i.camada = 3 THEN p3.username
-                WHEN i.camada = 2 THEN p2.username
-                ELSE p1.username
-            END AS auditor, 
-            COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
-            i.nao_conformidade, 
-            i.acao_corretiva, 
-            i.prazo,
-            i.resolvido,
-            i.comentario_resolucao,
-            i.camada
-        FROM dbo.Incidencias i
-        LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1
-        LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2
-        LEFT JOIN dbo.LPA_3 lpa_3 ON i.id_LPA = lpa_3.id AND i.camada = 3
-        LEFT JOIN dbo.users p1 ON lpa.id_user = p1.id
-        LEFT JOIN dbo.users p2 ON lpa_2.id_user = p2.id
-        LEFT JOIN dbo.users p3 ON lpa_3.id_user = p3.id
-        LEFT JOIN dbo.linha_pergunta lp ON COALESCE(
-            lpa.linha_pergunta_id, 
-            lpa_2.linha_pergunta_id, 
-            lpa_3.linha_pergunta_id
-        ) = lp.id
-        LEFT JOIN dbo.linhas l ON lp.linha_id = l.id
-        LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
-        LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
-        WHERE 1=1
-        """
-
+                SELECT 
+                    i.id, 
+                    l.linha, 
+                    COALESCE(lpa_3.data_auditoria, lpa_2.data_auditoria, lpa.data_auditoria) AS data_auditoria,
+                    CASE 
+                        WHEN i.camada = 3 THEN p3.name
+                        WHEN i.camada = 2 THEN p2.name
+                        ELSE p1.name
+                    END AS auditor, 
+                    COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
+                    COALESCE(lpa_3.resposta, lpa_2.resposta, lpa.resposta) AS resposta,
+                    i.nao_conformidade, 
+                    i.acao_corretiva, 
+                    i.prazo,
+                    i.resolvido,
+                    i.comentario_resolucao,
+                    i.camada
+                FROM dbo.Incidencias i
+                LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1
+                LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2
+                LEFT JOIN dbo.LPA_3 lpa_3 ON i.id_LPA = lpa_3.id AND i.camada = 3
+                LEFT JOIN dbo.users p1 ON lpa.id_user = p1.id
+                LEFT JOIN dbo.users p2 ON lpa_2.id_user = p2.id
+                LEFT JOIN dbo.users p3 ON lpa_3.id_user = p3.id
+                LEFT JOIN dbo.linha_pergunta lp ON COALESCE(
+                    lpa.linha_pergunta_id, 
+                    lpa_2.linha_pergunta_id, 
+                    lpa_3.linha_pergunta_id
+                ) = lp.id
+                LEFT JOIN dbo.linhas l ON lp.linha_id = l.id
+                LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
+                LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
+                WHERE 1=1
+                """
+                
         params = []
 
         if data_inicio:
@@ -621,12 +622,13 @@ def incidencias():
                 "data_auditoria": row[2],
                 "auditor": row[3],
                 "pergunta": row[4],
-                "nao_conformidade": row[5],
-                "acao_corretiva": row[6],
-                "prazo": row[7],
-                "resolvido": row[8] if row[8] is not None else None, 
-                "comentario_resolucao": row[9],
-                "camada": row[10]
+                "resposta": row[5],
+                "nao_conformidade": row[6],
+                "acao_corretiva": row[7],
+                "prazo": row[8],
+                "resolvido": row[9] if row[9] is not None else None, 
+                "comentario_resolucao": row[10],
+                "camada": row[11]
             }
             incidencias.append(incidencia)
 
@@ -669,17 +671,20 @@ def resolver_incidencia():
                 cursor.execute("""
                     UPDATE dbo.Incidencias
                     SET resolvido = 'True',
-                        comentario_resolucao = CONCAT(comentario_resolucao,
-                        CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
-                        'Verificado por: ', ?)
+                        comentario_resolucao = CONCAT(
+                            comentario_resolucao,
+                            CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
+                            'Verificado por: ', ?
+                        )
                     WHERE id = ?
                 """, (id_colaborador, request_id))
+                
                 cursor.execute("""
                     UPDATE dbo.LPA
                     SET resposta = 'OK'
                     WHERE id = (SELECT id_LPA FROM dbo.Incidencias WHERE id = ?)
                 """, (request_id,))
-                
+            
             else:
                 comentario_resolucao = request.form.get('comentario')
                 
@@ -696,16 +701,16 @@ def resolver_incidencia():
                 return jsonify({"success": True})
             
             return redirect(url_for('incidencias'))
-        
-        # GET request - Exibir o formulário
+
+        # GET request
         query = """
             SELECT
                 i.id,
                 l.linha,
                 lpa.data_auditoria,
-                lpa.turno,
-                p.username AS auditor,
+                p.name AS auditor,
                 COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
+                lpa.resposta,
                 i.nao_conformidade,
                 i.acao_corretiva,
                 i.prazo,
@@ -723,34 +728,32 @@ def resolver_incidencia():
         cursor.execute(query, (request_id,))
         incidencia = cursor.fetchone()
         conn.close()
-        
+
         if not incidencia:
             flash("Incidência não encontrada!", "danger")
             return redirect(url_for('incidencias'))
-        
-        data_formatada = incidencia[2].strftime('%d/%m/%y') if incidencia[2] else None
+
+        data_formatada = incidencia[2].strftime('%d/%m/%Y %H:%M') if incidencia[2] else None
         incidencia_dict = {
             "id": incidencia[0],
             "linha": incidencia[1],
-            "data_auditoria": data_formatada,  
-            "turno": incidencia[3],
-            "auditor": incidencia[4],
-            "pergunta": incidencia[5],
+            "data_auditoria": data_formatada,
+            "auditor": incidencia[3],
+            "pergunta": incidencia[4],
+            "resposta": incidencia[5],
             "nao_conformidade": incidencia[6],
             "acao_corretiva": incidencia[7],
             "prazo": incidencia[8],
             "resolvido": incidencia[9],
             "comentario_resolucao": incidencia[10]
         }
-        
-        if incidencia[9] == 'False':  
-            return render_template('incidencias/verificar_incidencia.html', incidencia=incidencia_dict)
-        else:
-            return render_template('incidencias/resolver_incidencia.html', incidencia=incidencia_dict)
-    
+
+        return render_template('incidencias/resolver_incidencia.html', incidencia=incidencia_dict)
+
     except Exception as e:
         flash(f'Erro ao carregar a incidência: {str(e)}', 'error')
         return redirect(url_for('incidencias'))
+
     #########################  FIM 1º CAMADA #####################################
 
     #########################  2º CAMADA  #####################################
