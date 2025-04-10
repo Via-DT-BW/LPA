@@ -1,6 +1,6 @@
         :root {
             --primary: #051729;
-            --primary-light: #215391;
+            --primary-light: #113561;
             --primary-hover: #859cac;
             --accent: #2EFAD9;
             --success: #28a745;
@@ -105,7 +105,7 @@
         }
         
         label {
-            font-size: 0.875rem;
+            font-size: 1rem;
             font-weight: 600;
             color: #444;
             margin-bottom: 0.5rem;
