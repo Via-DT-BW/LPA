@@ -36,29 +36,23 @@ function realizarLPA3() {
                                 <small class="form-text text-muted mt-2">
                                     OBJETIVO: ${item.objetivo || "Não definido"}
                                 </small>
-                                <div class="radio-group mt-2">
-                                    <div class="custom-control custom-radio custom-control-inline">
-                                        <input type="radio" id="ok${index}" name="item${index}" value="OK" 
-                                            class="custom-control-input" onchange="toggleNokFields3(${index})">
-                                        <label class="custom-control-label" for="ok${index}">OK</label>
-                                    </div>
-                                    <div class="custom-control custom-radio custom-control-inline">
-                                        <input type="radio" id="nok${index}" name="item${index}" value="NOK" 
-                                            class="custom-control-input" onchange="toggleNokFields3(${index})">
-                                        <label class="custom-control-label" for="nok${index}">NOK</label>
-                                    </div>
-                                    <div class="custom-control custom-radio custom-control-inline">
-                                        <input type="radio" id="nc${index}" name="item${index}" value="NC" 
-                                            class="custom-control-input" onchange="toggleNokFields3(${index})">
-                                        <label class="custom-control-label" for="nc${index}">NC</label>
-                                    </div>
-                                    <div class="custom-control custom-radio custom-control-inline">
-                                        <input type="radio" id="nt${index}" name="item${index}" value="NT" 
-                                            class="custom-control-input" onchange="toggleNokFields3(${index})">
-                                        <label class="custom-control-label" for="nt${index}">NT</label>
-                                    </div>
+                                <div class="btn-group mt-2" role="group" aria-label="Options">
+                            <button type="button" class="btn btn-outline-success" id="ok${index}" onclick="toggleNokFields3(${index}, 'OK')">
+                                <i class="fas fa-check-circle"></i> OK
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" id="nok${index}" onclick="toggleNokFields3(${index}, 'NOK')">
+                                <i class="fas fa-times-circle"></i> NOK
+                            </button>
+                            <button type="button" class="btn btn-outline-warning" id="nc${index}" onclick="toggleNokFields3(${index}, 'NC')">
+                                <i class="fas fa-exclamation-circle"></i> NC
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="nt${index}" onclick="toggleNokFields3(${index}, 'NT')">
+                                <i class="fas fa-question-circle"></i> NT
+                            </button>
+                        </div>
+
                                 </div>
-                                <div id="nokFields${index}" class="nok-description">
+                                <div id="nokFields${index}" class="nok-description mb-2">
                                     <input type="text" class="form-control mt-2" placeholder="Descreva a não conformidade..." id="naoConformidade${index}">
                                     <input type="text" class="form-control mt-2" placeholder="Ação corretiva..." id="acaoCorretiva${index}">
                                     <input type="date" class="form-control mt-2" id="prazo${index}">

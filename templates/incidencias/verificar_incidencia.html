@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% include 'components/head.html' %}
+{% block content %}
+<body id="page-top">
+    <div id="content">
+        {% include 'components/navbar.html' %}
+        <div class="container-fluid">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="font-weight-bold text-warning mb-0">Verificar Resolução</h6>
+                    <a href="{{ url_for('incidencias') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6 col-12 mb-3">
+                            <h5 class="text-primary font-weight-bold">Detalhes da Incidência</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <th class="text-nowrap">Linha:</th>
+                                        <td>{{ incidencia.linha }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-nowrap">Data da Auditoria:</th>
+                                        <td>{{ incidencia.data_auditoria }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-nowrap">Turno:</th>
+                                        <td>{{ incidencia.turno }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-nowrap">Auditor:</th>
+                                        <td>{{ incidencia.auditor }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <h5 class="text-danger font-weight-bold">Problema Identificado</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <th class="text-nowrap">Pergunta:</th>
+                                        <td>{{ incidencia.pergunta }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-nowrap">Não Conformidade:</th>
+                                        <td>{{ incidencia.nao_conformidade }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-nowrap">Ação Corretiva:</th>
+                                        <td>{{ incidencia.acao_corretiva }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-nowrap">Prazo:</th>
+                                        <td>{{ incidencia.prazo }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4 border-left-info">
+                        <div class="card-body">
+                            <h5 class="text-info font-weight-bold">Comentário de Resolução</h5>
+                            <p>{{ incidencia.comentario_resolucao }}</p>
+                        </div>
+                    </div>
+                    
+                    <form id="verificarForm">
+                        <div class="card mb-4 border-left-success">
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="id_colaborador"><strong>Confirmar Resolução</strong></label>
+                                    <input type="number" class="form-control" id="id_colaborador" name="id_colaborador" required>
+                                    <small class="form-text text-muted">Insira o número de colaborador para validar esta resolução.</small>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check"></i> Confirmar Verificação
+                            </button>
+                            <a href="{{ url_for('incidencias') }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                    
+                </div>
+            </div>
+        </div>
+        <script>
+                $(document).ready(function() {
+                    $("#verificarForm").submit(function(event) {
+                        event.preventDefault(); 
+                
+                        var formData = $(this).serialize();
+                
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ url_for('resolver_incidencia') }}?id={{ incidencia.id }}",
+                            data: formData,
+                            dataType: "json",
+                            success: function(response) {
+                                if (response.success) {
+                                    toastr.success("Verificação concluída com sucesso!");
+                                    setTimeout(function() {
+                                        window.location.href = "{{ url_for('incidencias') }}"; 
+                                    }, 2000);
+                                }
+                            },
+                            error: function(xhr) {
+                                var errorMsg = "Erro ao verificar a resolução. Tente novamente!";
+                                if (xhr.responseJSON && xhr.responseJSON.error) {
+                                    errorMsg = xhr.responseJSON.error;
+                                }
+                                toastr.error(errorMsg);
+                            }
+                        });
+                    });
+                });        
+        </script>
+        {% include 'components/footer.html' %}
+    </div>
+</body>
+{% endblock %}
+</html>
