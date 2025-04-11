@@ -1,66 +1,110 @@
-function abrirModal(button) {
-    const incidenciaId = button.getAttribute('data-id');
-    fetch(`/api/incidencia/${incidenciaId}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('modal-nao-conformidade').textContent = data.nao_conformidade;
-            document.getElementById('modal-acao-corretiva').textContent = data.acao_corretiva;
-            document.getElementById('modal-comentario').textContent = data.comentario_resolucao || '-';
-            document.getElementById('modal-id-incidencia').value = incidenciaId;
-            document.getElementById('modal-username').value = '';
-            document.getElementById('modal-password').value = '';
-            document.getElementById('modal-erro').style.display = 'none';
-
+function abrirModal(btn) {
+    const id = $(btn).data('id');
+    
+    // Buscar informações da incidência para preencher o modal
+    $.ajax({
+        url: '/get_incidencia_info',
+        type: 'GET',
+        data: { id: id },
+        success: function(response) {
+            $('#modal-nao-conformidade').text(response.nao_conformidade);
+            $('#modal-acao-corretiva').text(response.acao_corretiva);
+            $('#modal-comentario').text(response.comentario_resolucao);
+            $('#modal-id-incidencia').val(id);
+            
+            // Reset dos campos
+            $('#modal-username').val('');
+            $('#modal-password').val('');
+            $('#modal-erro').hide();
+            
             $('#modalVerificacao').modal('show');
-        })
-        .catch(err => {
-            alert("Erro ao buscar dados da incidência.");
-            console.error(err);
-        });
+        },
+        error: function() {
+            toastr.error('Erro ao carregar informações da incidência');
+        }
+    });
 }
 
 function confirmarIncidencia() {
-    const id = document.getElementById('modal-id-incidencia').value;
-    const username = document.getElementById('modal-username').value;
-    const password = document.getElementById('modal-password').value;
-
-    fetch('/api/incidencia/confirmar', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    const id = $('#modal-id-incidencia').val();
+    const username = $('#modal-username').val();
+    const password = $('#modal-password').val();
+    
+    if (!username || !password) {
+        $('#modal-erro').text('Por favor, preencha o username e password').show();
+        return;
+    }
+    
+    // Botão com loading
+    const $btn = $('.modal-footer .btn-success');
+    const originalText = $btn.html();
+    $btn.html('<i class="fas fa-spinner fa-spin mr-2"></i> Processando...').prop('disabled', true);
+    
+    $.ajax({
+        url: '/finalizar_incidencia',
+        type: 'POST',
+        data: {
+            id: id,
+            username: username,
+            password: password,
+            action: 'confirmar'
         },
-        body: JSON.stringify({ id, username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            const erroDiv = document.getElementById('modal-erro');
-            erroDiv.textContent = data.message;
-            erroDiv.style.display = 'block';
+        success: function(response) {
+            $('#modalVerificacao').modal('hide');
+            toastr.success('Incidência verificada com sucesso!');
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        },
+        error: function(xhr) {
+            let errorMsg = "Erro ao verificar a incidência";
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMsg = xhr.responseJSON.error;
+            }
+            $('#modal-erro').text(errorMsg).show();
+            $btn.html(originalText).prop('disabled', false);
         }
-    })
-    .catch(err => console.error(err));
+    });
 }
 
 function rejeitarIncidencia() {
-    const id = document.getElementById('modal-id-incidencia').value;
-
-    fetch('/api/incidencia/rejeitar', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    const id = $('#modal-id-incidencia').val();
+    const username = $('#modal-username').val();
+    const password = $('#modal-password').val();
+    
+    if (!username || !password) {
+        $('#modal-erro').text('Por favor, preencha o username e password').show();
+        return;
+    }
+    
+    // Botão com loading
+    const $btn = $('.modal-footer .btn-danger');
+    const originalText = $btn.html();
+    $btn.html('<i class="fas fa-spinner fa-spin mr-2"></i> Processando...').prop('disabled', true);
+    
+    $.ajax({
+        url: '/finalizar_incidencia',
+        type: 'POST',
+        data: {
+            id: id,
+            username: username,
+            password: password,
+            action: 'rejeitar'
         },
-        body: JSON.stringify({ id })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert("Erro ao rejeitar.");
+        success: function(response) {
+            $('#modalVerificacao').modal('hide');
+            toastr.success('Incidência rejeitada com sucesso!');
+            setTimeout(function() {
+                location.reload();
+            }, 1500);
+        },
+        error: function(xhr) {
+            let errorMsg = "Erro ao rejeitar a incidência";
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMsg = xhr.responseJSON.error;
+            }
+            $('#modal-erro').text(errorMsg).show();
+            $btn.html(originalText).prop('disabled', false);
         }
-    })
-    .catch(err => console.error(err));
+    });
 }

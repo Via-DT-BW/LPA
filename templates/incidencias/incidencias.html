@@ -109,7 +109,6 @@
 
     {% include 'components/footer.html' %}
 
-    <!-- Modal de Resolução -->
     {% for incidencia in incidencias %}
     <div class="modal fade" id="modalResolucao{{ incidencia.id }}" tabindex="-1" role="dialog" aria-labelledby="modalResolucaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -134,7 +133,7 @@
                         {% elif incidencia.resolvido == 'False' %}
                             Resolução Pendente de Verificação
                         {% else %}
-                            Pendente
+                            Por Resolver
                         {% endif %}
                     </p>
                 
@@ -149,12 +148,14 @@
             </div>
         </div>
     </div>
+    
+
     <div class="modal fade" id="modalVerificacao" tabindex="-1" role="dialog" aria-labelledby="modalVerificacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
           <div class="modal-content">
       
             <div class="modal-header">
-              <h5 class="modal-title" id="modalVerificacaoLabel">Verificação de Incidência</h5>
+              <h5 class="modal-title" id="modalVerificacaoLabel">Finalizar Incidência</h5>
               <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
                 <span aria-hidden="true">&times;</span>
               </button>

@@ -114,7 +114,7 @@
                                     </div>
                                 </div>
                 
-                                <div class="text-center mt-4">
+                                <div class="text-center mt-2">
                                     <button type="button" class="btn btn-primary px-5" onclick="salvarLPA3(event)">
                                         <i class="fas fa-save mr-2"></i> Submeter LPA
                                     </button>                                
@@ -141,6 +141,40 @@
             realizarLPA3();  
         }
     };
+    
+    // Add the new selectOption3 function
+    function selectOption3(index, option) {
+        // Store the selected value in the hidden input
+        document.getElementById(`response${index}`).value = option;
+        
+        // Remove active class from all buttons in this group
+        const buttons = ["ok", "nok", "nc", "nt"];
+        buttons.forEach(btn => {
+            document.getElementById(`${btn}${index}`).classList.remove("active");
+            document.getElementById(`${btn}${index}`).classList.remove("btn-success", "btn-danger", "btn-warning", "btn-secondary");
+            document.getElementById(`${btn}${index}`).classList.add(`btn-outline-${getButtonStyle(btn)}`);
+        });
+        
+        // Add active class to the selected button
+        const selectedButton = document.getElementById(`${option.toLowerCase()}${index}`);
+        selectedButton.classList.add("active");
+        selectedButton.classList.remove(`btn-outline-${getButtonStyle(option.toLowerCase())}`);
+        selectedButton.classList.add(`btn-${getButtonStyle(option.toLowerCase())}`);
+        
+        // Show/hide NOK fields based on selection
+        toggleNokFields3(index, option);
+    }
+    
+    // Helper function to get button style
+    function getButtonStyle(buttonType) {
+        switch(buttonType) {
+            case "ok": return "success";
+            case "nok": return "danger";
+            case "nc": return "warning";
+            case "nt": return "secondary";
+            default: return "primary";
+        }
+    }
     </script>
 
     {% endblock %}

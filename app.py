@@ -42,7 +42,7 @@ def login():
         cursor = conn.cursor()
         
         query = """
-            SELECT id, name, nr_colaborador, username, role 
+            SELECT id, name, nr_colaborador, username, role, status 
             FROM dbo.users 
             WHERE username = ? AND password = ?
         """
@@ -56,12 +56,14 @@ def login():
             session['name'] = user[1]
             session['nr_colaborador'] = user[2]
             session['role'] = user[4].strip() if user[4] else ""
+            session['status'] = user[5]
 
             # For AJAX requests (from "Realizar LPA")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and is_lpa_login:
                 return jsonify({
                     'success': True,
-                    'role': session['role']
+                    'role': session['role'],
+                    'status': session['status'] 
                 })
 
             # For regular form submissions (other menu items)
@@ -91,6 +93,35 @@ def login():
         flash(f'Erro ao fazer login: {str(e)}', 'error')
         return redirect(url_for('index'))
     
+@app.route('/change_first_password', methods=["POST"])
+def change_first_password():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Utilizador não autenticado.'})
+    
+    try:
+        user_id = session['user_id']
+        new_password = request.form['new_password']
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update the password and set status to 1
+        query = """
+            UPDATE dbo.users 
+            SET password = ?, status = 1
+            WHERE id = ?
+        """
+        cursor.execute(query, (new_password, user_id))
+        conn.commit()
+        conn.close()
+        
+        # Update session
+        session['status'] = False
+        
+        return jsonify({'success': True, 'message': 'Palavra-passe alterada com sucesso!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao alterar a palavra-passe: {str(e)}'})
     
      #################### 1º CAMADA #####################################
 
@@ -111,6 +142,9 @@ def home():
         page = int(request.args.get('page', 1))
         page_size = int(request.args.get('page_size', 7))
         offset = (page - 1) * page_size
+
+        # Obter a data atual (sem a parte de hora, minuto, segundo)
+        current_date = datetime.now().date()
 
         # Carrega todas as linhas para o filtro dropdown
         if user_role == 'admin':
@@ -177,9 +211,10 @@ def home():
                 LEFT JOIN LPA ON lp.id = LPA.linha_pergunta_id
                 LEFT JOIN users p ON LPA.id_user = p.id
                 WHERE l.id IN ({placeholders})
+                AND CAST(LPA.data_auditoria AS DATE) = ?  -- Filtro para data de hoje
                 ORDER BY l.linha, LPA.turno
             """
-            cursor.execute(query_lpas, current_page_line_ids)
+            cursor.execute(query_lpas, current_page_line_ids + [current_date])
             lpas_result = cursor.fetchall()
 
         conn.close()
@@ -216,13 +251,13 @@ def home():
             todas_linhas=todas_linhas,
             page=page,
             total_pages=total_pages,
-            page_size=page_size
+            page_size=page_size,
+            current_date=current_date  # Passa a data atual para o template
         )
 
     except Exception as e:
         flash(f'Erro ao carregar LPAs: {str(e)}', 'error')
         return redirect(url_for('index'))
-
 
 
 @app.route('/create_lpa')
@@ -304,7 +339,7 @@ def get_user_data():
     try:
         conn = get_db_connection()
         query = """
-            SELECT Nr_colaborador, username 
+            SELECT Nr_colaborador, name 
             FROM dbo.users 
             WHERE id = ?
         """
@@ -637,6 +672,7 @@ def incidencias():
                               data_inicio=data_inicio,
                               data_fim=data_fim)
 
+
     except Exception as e:
         flash(f'Erro ao carregar incidências: {str(e)}', 'error')
         return redirect(url_for('index'))
@@ -648,51 +684,59 @@ def incidencias():
 def resolver_incidencia():
     if 'user_id' not in session:
         return redirect(url_for('index'))
+    
     try:
+        # Captura o ID da incidência da URL
         request_id = request.args.get('id', '')
+        
+        if not request_id:
+            flash("ID da incidência não fornecido!", "danger")
+            return redirect(url_for('incidencias'))
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT Nr_Colaborador FROM dbo.users WHERE id = ?", (session['user_id'],))
-        logged_in_user = cursor.fetchone()
+        # Primeiro busca os dados da incidência para obter a camada
+        query_get_incidencia = """
+            SELECT 
+                i.camada, 
+                i.id_LPA,
+                CASE
+                    WHEN i.camada = 1 THEN lpa.resposta
+                    WHEN i.camada = 2 THEN lpa_2.resposta
+                    WHEN i.camada = 3 THEN lpa_3.resposta
+                END AS resposta
+            FROM dbo.Incidencias i
+            LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1
+            LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2
+            LEFT JOIN dbo.LPA_3 lpa_3 ON i.id_LPA = lpa_3.id AND i.camada = 3
+            WHERE i.id = ?
+        """
+        cursor.execute(query_get_incidencia, (request_id,))
+        incidencia_info = cursor.fetchone()
+        
+        if not incidencia_info:
+            flash("Incidência não encontrada!", "danger")
+            return redirect(url_for('incidencias'))
         
         if request.method == 'POST':
-            if 'id_colaborador' in request.form:
-                id_colaborador = request.form.get('id_colaborador')
-                
-                if not logged_in_user or str(id_colaborador) != str(logged_in_user[0]):
-                    conn.close()
-                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                        return jsonify({"success": False, "error": "Número de colaborador inválido."}), 400
-                    else:
-                        flash("Número de colaborador inválido.", "danger")
-                        return redirect(url_for('incidencias'))
-                
-                cursor.execute("""
-                    UPDATE dbo.Incidencias
-                    SET resolvido = 'True',
-                        comentario_resolucao = CONCAT(
-                            comentario_resolucao,
-                            CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
-                            'Verificado por: ', ?
-                        )
-                    WHERE id = ?
-                """, (id_colaborador, request_id))
-                
-                cursor.execute("""
-                    UPDATE dbo.LPA
-                    SET resposta = 'OK'
-                    WHERE id = (SELECT id_LPA FROM dbo.Incidencias WHERE id = ?)
-                """, (request_id,))
+            # Captura apenas o comentário de resolução
+            comentario = request.form.get('comentario')
             
-            else:
-                comentario_resolucao = request.form.get('comentario')
-                
-                cursor.execute("""
-                    UPDATE dbo.Incidencias
-                    SET resolvido = 'False', comentario_resolucao = ?
-                    WHERE id = ?
-                """, (comentario_resolucao, request_id))
+            if not comentario:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"success": False, "error": "Comentário de resolução é obrigatório."}), 400
+                else:
+                    flash("Comentário de resolução é obrigatório.", "danger")
+                    return redirect(url_for('resolver_incidencia', id=request_id))
+
+            # Atualiza a incidência como pendente de verificação (resolvido = 'False')
+            cursor.execute("""
+                UPDATE dbo.Incidencias
+                SET resolvido = 'False',
+                    comentario_resolucao = ?
+                WHERE id = ? AND (resolvido IS NULL)
+            """, (comentario, request_id))
             
             conn.commit()
             conn.close()
@@ -700,31 +744,50 @@ def resolver_incidencia():
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({"success": True})
             
+            flash("Resolução registrada com sucesso! Aguardando verificação.", "success")
             return redirect(url_for('incidencias'))
 
-        # GET request
+        # GET request - Busca os dados da incidência para exibição
         query = """
             SELECT
                 i.id,
                 l.linha,
-                lpa.data_auditoria,
-                p.name AS auditor,
+                COALESCE(lpa_3.data_auditoria, lpa_2.data_auditoria, lpa.data_auditoria) AS data_auditoria,
+                CASE 
+                    WHEN i.camada = 3 THEN p3.name
+                    WHEN i.camada = 2 THEN p2.name
+                    ELSE p1.name
+                END AS auditor,
                 COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
-                lpa.resposta,
+                CASE
+                    WHEN i.camada = 1 THEN lpa.resposta
+                    WHEN i.camada = 2 THEN lpa_2.resposta
+                    WHEN i.camada = 3 THEN lpa_3.resposta
+                END AS resposta,
                 i.nao_conformidade,
                 i.acao_corretiva,
                 i.prazo,
                 i.resolvido,
-                i.comentario_resolucao
+                i.comentario_resolucao,
+                i.camada
             FROM dbo.Incidencias i
-            JOIN dbo.LPA lpa ON i.id_LPA = lpa.id
-            JOIN dbo.linha_pergunta lp ON lpa.linha_pergunta_id = lp.id
-            JOIN dbo.linhas l ON lp.linha_id = l.id
+            LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1
+            LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2
+            LEFT JOIN dbo.LPA_3 lpa_3 ON i.id_LPA = lpa_3.id AND i.camada = 3
+            LEFT JOIN dbo.users p1 ON lpa.id_user = p1.id
+            LEFT JOIN dbo.users p2 ON lpa_2.id_user = p2.id
+            LEFT JOIN dbo.users p3 ON lpa_3.id_user = p3.id
+            LEFT JOIN dbo.linha_pergunta lp ON COALESCE(
+                lpa.linha_pergunta_id, 
+                lpa_2.linha_pergunta_id, 
+                lpa_3.linha_pergunta_id
+            ) = lp.id
+            LEFT JOIN dbo.linhas l ON lp.linha_id = l.id
             LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
             LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
-            JOIN dbo.users p ON lpa.id_user = p.id
             WHERE i.id = ?
         """
+
         cursor.execute(query, (request_id,))
         incidencia = cursor.fetchone()
         conn.close()
@@ -745,15 +808,210 @@ def resolver_incidencia():
             "acao_corretiva": incidencia[7],
             "prazo": incidencia[8],
             "resolvido": incidencia[9],
-            "comentario_resolucao": incidencia[10]
+            "comentario_resolucao": incidencia[10],
+            "camada": incidencia[11]
         }
 
         return render_template('incidencias/resolver_incidencia.html', incidencia=incidencia_dict)
 
     except Exception as e:
-        flash(f'Erro ao carregar a incidência: {str(e)}', 'error')
-        return redirect(url_for('incidencias'))
-
+        print(f'Erro ao carregar a incidência: {str(e)}', 'error')
+        return redirect(url_for('index'))
+    
+@app.route('/finalizar_incidencia', methods=['POST'])
+def finalizar_incidencia():
+    if 'user_id' not in session:
+        return jsonify({"success": False, "error": "Não autenticado"}), 401
+    
+    try:
+        incidencia_id = request.form.get('id')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        action = request.form.get('action')  # 'confirmar' ou 'rejeitar'
+        
+        print(f"Processando incidência ID: {incidencia_id}, Ação: {action}")
+        
+        if not all([incidencia_id, username, password, action]):
+            return jsonify({"success": False, "error": "Parâmetros incompletos"}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar credenciais do usuário
+        cursor.execute("SELECT id FROM dbo.users WHERE username = ? AND password = ?", (username, password))
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return jsonify({"success": False, "error": "Username ou password inválido"}), 401
+        
+        # Buscar informações da incidência com mais detalhes para debug
+        cursor.execute("""
+            SELECT i.id, i.id_LPA, i.camada, i.resolvido, i.nao_conformidade
+            FROM dbo.Incidencias i
+            WHERE i.id = ?
+        """, (incidencia_id,))
+        
+        incidencia_info = cursor.fetchone()
+        
+        if not incidencia_info:
+            conn.close()
+            return jsonify({"success": False, "error": "Incidência não encontrada"}), 404
+        
+        print(f"Incidência encontrada: {incidencia_info}")
+        
+        incidencia_id_db = incidencia_info[0]
+        id_lpa = incidencia_info[1]
+        camada = incidencia_info[2]
+        resolvido = incidencia_info[3]
+        
+        # Garantir que id_lpa seja um inteiro
+        try:
+            id_lpa = int(id_lpa)
+        except (ValueError, TypeError):
+            print(f"Erro ao converter id_LPA: {id_lpa}")
+            conn.close()
+            return jsonify({"success": False, "error": f"id_LPA inválido: {id_lpa}"}), 400
+        
+        # Verificar se a incidência está pendente de verificação
+        if resolvido != 'False':
+            conn.close()
+            return jsonify({"success": False, "error": f"Esta incidência não está pendente de verificação. Status atual: {resolvido}"}), 400
+        
+        # Determinar qual tabela LPA usar
+        table_name = "dbo.LPA"
+        if camada == 2 or camada == '2':
+            table_name = "dbo.LPA_2"
+        elif camada == 3 or camada == '3':
+            table_name = "dbo.LPA_3"
+            
+        print(f"Usando tabela: {table_name} para camada: {camada}")
+        
+        # Verificar se o registro existe na tabela LPA
+        cursor.execute(f"""
+            SELECT id, resposta
+            FROM {table_name}
+            WHERE id = ?
+        """, (id_lpa,))
+        
+        lpa_record = cursor.fetchone()
+        print(f"Registro LPA encontrado: {lpa_record}")
+        
+        if not lpa_record:
+            conn.close()
+            return jsonify({"success": False, "error": f"Registro LPA ID {id_lpa} não encontrado na tabela {table_name}"}), 404
+        
+        if action == 'confirmar':
+            # Atualizar primeiro o LPA e depois a incidência para garantir que ambos sejam atualizados
+            update_lpa_query = f"""
+                UPDATE {table_name}
+                SET resposta = 'OK'
+                WHERE id = ?
+            """
+            
+            print(f"Executando query: {update_lpa_query} com id_lpa: {id_lpa}")
+            cursor.execute(update_lpa_query, (id_lpa,))
+            rows_affected_lpa = cursor.rowcount
+            print(f"Linhas afetadas na atualização do LPA: {rows_affected_lpa}")
+            
+            # Verificar se a atualização do LPA foi bem-sucedida
+            if rows_affected_lpa == 0:
+                print("Aviso: Nenhuma linha atualizada no LPA. Verificando estado atual.")
+                cursor.execute(f"SELECT id, resposta FROM {table_name} WHERE id = ?", (id_lpa,))
+                current_state = cursor.fetchone()
+                print(f"Estado atual do registro LPA: {current_state}")
+            
+            # Atualiza a incidência como verificada
+            cursor.execute("""
+                UPDATE dbo.Incidencias
+                SET resolvido = 'True',
+                    comentario_resolucao = CONCAT(
+                        ISNULL(comentario_resolucao, ''),
+                        CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
+                        'Verificado por: ', ?
+                    )
+                WHERE id = ? AND resolvido = 'False'
+            """, (username, incidencia_id))
+            
+            rows_affected_inc = cursor.rowcount
+            print(f"Linhas afetadas na atualização da incidência: {rows_affected_inc}")
+            
+        elif action == 'rejeitar':
+            # Resetar a incidência para não resolvida
+            cursor.execute("""
+                UPDATE dbo.Incidencias
+                SET resolvido = NULL,
+                    comentario_resolucao = CONCAT(
+                        ISNULL(comentario_resolucao, ''),
+                        CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
+                        'Rejeitado por: ', ?
+                    )
+                WHERE id = ? AND resolvido = 'False'
+            """, (username, incidencia_id))
+        
+        # Commit e mostrar o estado final para debug
+        conn.commit()
+        
+        # Verificar estado após commit
+        cursor.execute(f"SELECT id, resposta FROM {table_name} WHERE id = ?", (id_lpa,))
+        final_state = cursor.fetchone()
+        print(f"Estado final do registro LPA após commit: {final_state}")
+        
+        conn.close()
+        
+        return jsonify({"success": True, "debug_info": {
+            "incidencia_id": incidencia_id,
+            "id_lpa": id_lpa,
+            "camada": camada,
+            "table_used": table_name
+        }})
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Erro ao finalizar incidência: {str(e)}\n{error_details}")
+        return jsonify({"success": False, "error": f"Erro ao processar a requisição: {str(e)}"}), 500
+    
+    
+@app.route('/get_incidencia_info', methods=['GET'])
+def get_incidencia_info():
+    if 'user_id' not in session:
+        return jsonify({"success": False, "error": "Não autenticado"}), 401
+    
+    try:
+        incidencia_id = request.args.get('id')
+        
+        if not incidencia_id:
+            return jsonify({"success": False, "error": "ID da incidência não fornecido"}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                i.nao_conformidade,
+                i.acao_corretiva,
+                i.comentario_resolucao
+            FROM dbo.Incidencias i
+            WHERE i.id = ?
+        """, (incidencia_id,))
+        
+        incidencia = cursor.fetchone()
+        conn.close()
+        
+        if not incidencia:
+            return jsonify({"success": False, "error": "Incidência não encontrada"}), 404
+        
+        return jsonify({
+            "nao_conformidade": incidencia[0],
+            "acao_corretiva": incidencia[1],
+            "comentario_resolucao": incidencia[2]
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter informações da incidência: {str(e)}")
+        return jsonify({"success": False, "error": "Erro ao processar a requisição"}), 500
+    
     #########################  FIM 1º CAMADA #####################################
 
     #########################  2º CAMADA  #####################################
@@ -969,7 +1227,7 @@ def get_user_data2():
     try:
         conn = get_db_connection()
         query = """
-            SELECT Nr_colaborador, username 
+            SELECT Nr_colaborador, name 
             FROM dbo.users 
             WHERE id = ?
         """
@@ -1203,200 +1461,6 @@ def get_lpa_data2():
         return jsonify({"error": f"Erro ao buscar LPAs: {str(e)}"}), 500
 
 
-    
-@app.route('/incidencias2')
-def incidencias2():
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-
-    try:
-        data_inicio = request.args.get('data_inicio', '')
-        data_fim = request.args.get('data_fim', '')
-
-        query = """
-               SELECT 
-            i.id, 
-            l.linha, 
-            COALESCE(lpa_2.data_auditoria, lpa.data_auditoria) AS data_auditoria,
-            CASE 
-                WHEN i.camada = 2 THEN p2.username
-                ELSE p1.username 
-            END AS auditor, 
-            COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
-            i.nao_conformidade, 
-            i.acao_corretiva, 
-            i.prazo,
-            i.resolvido,
-            i.comentario_resolucao,
-            i.camada  -- Adicionando camada para diferenciação
-        FROM dbo.Incidencias i
-        LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1  -- Apenas para camada 1
-        LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2  -- Apenas para camada 2
-        LEFT JOIN dbo.users p1 ON lpa.id_user = p1.id  -- Auditor da 1ª camada
-        LEFT JOIN dbo.users p2 ON lpa_2.id_user = p2.id  -- Auditor da 2ª camada
-        JOIN dbo.linha_pergunta lp ON COALESCE(lpa.linha_pergunta_id, lpa_2.linha_pergunta_id) = lp.id
-        JOIN dbo.linhas l ON lp.linha_id = l.id
-        LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
-        LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
-        WHERE 1=1  
-        """
-
-        params = []
-
-        if data_inicio:
-            query += " AND CONVERT(DATE, COALESCE(lpa.data_auditoria, lpa_2.data_auditoria)) >= CONVERT(DATE, ?)"
-            params.append(data_inicio)
-
-        if data_fim:
-            query += " AND CONVERT(DATE, COALESCE(lpa.data_auditoria, lpa_2.data_auditoria)) <= CONVERT(DATE, ?)"
-            params.append(data_fim)
-
-        query += " ORDER BY data_auditoria DESC"
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        results = cursor.fetchall()
-        conn.close()
-
-        incidencias = []
-        for row in results:
-            incidencia = {
-                "id": row[0],
-                "linha": row[1],
-                "data_auditoria": row[2],
-                "auditor": row[3],
-                "pergunta": row[4],
-                "nao_conformidade": row[5],
-                "acao_corretiva": row[6],
-                "prazo": row[7],
-                "resolvido": row[8] if row[8] is not None else None, 
-                "comentario_resolucao": row[9]
-            }
-            incidencias.append(incidencia)
-
-        return render_template('2_camada/incidencias2.html', 
-                              incidencias=incidencias, 
-                              data_inicio=data_inicio,
-                              data_fim=data_fim)
-
-    except Exception as e:
-        flash(f'Erro ao carregar incidências: {str(e)}', 'error')
-        return redirect(url_for('index'))
-
-
-@app.route('/resolver_incidencia2', methods=['GET', 'POST'])
-def resolver_incidencia2():
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-
-    try:
-        request_id = request.args.get('id', '')
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT Nr_Colaborador FROM dbo.users WHERE id = ?", (session['user_id'],))
-        logged_in_user = cursor.fetchone()
-
-        if request.method == 'POST':
-            if 'id_colaborador' in request.form:
-                id_colaborador = request.form.get('id_colaborador')
-
-                if not logged_in_user or str(id_colaborador) != str(logged_in_user[0]):
-                    conn.close()
-                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                        return jsonify({"success": False, "error": "Número de colaborador inválido."}), 400
-                    else:
-                        flash("Número de colaborador inválido.", "danger")
-                        return redirect(url_for('incidencias'))
-
-                cursor.execute("""
-                    UPDATE dbo.Incidencias
-                    SET resolvido = 'True',
-                        comentario_resolucao = CONCAT(comentario_resolucao,
-                        CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
-                        'Verificado por: ', ?)
-                    WHERE id = ?
-                """, (id_colaborador, request_id))
-
-                cursor.execute("""
-                    UPDATE dbo.LPA_2
-                    SET resposta = 'OK'
-                    WHERE id = (SELECT id_LPA FROM dbo.Incidencias WHERE id = ?)
-                """, (request_id,))
-            else:
-                comentario_resolucao = request.form.get('comentario')
-
-                cursor.execute("""
-                    UPDATE dbo.Incidencias
-                    SET resolvido = 'False', comentario_resolucao = ?
-                    WHERE id = ?
-                """, (comentario_resolucao, request_id))
-
-            conn.commit()
-            conn.close()
-
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({"success": True})
-
-            return redirect(url_for('incidencias'))
-
-        # GET request - Exibir o formulário
-  
-        query = """
-            SELECT
-                i.id,
-                l.linha,
-                lpa2.data_auditoria,
-                p.username AS auditor,
-                COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
-                i.nao_conformidade,
-                i.acao_corretiva,
-                i.prazo,
-                i.resolvido,
-                i.comentario_resolucao
-            FROM dbo.Incidencias i
-            JOIN dbo.LPA_2 lpa2 ON i.id_LPA = lpa2.id
-            JOIN dbo.linha_pergunta lp ON lpa2.linha_pergunta_id = lp.id
-            JOIN dbo.linhas l ON lp.linha_id = l.id
-            LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
-            LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
-            JOIN dbo.users p ON lpa2.id_user = p.id
-            WHERE i.id = ?
-        """
-
-        cursor.execute(query, (request_id,))
-        incidencia = cursor.fetchone()
-        conn.close()
-
-        if not incidencia:
-            flash("Incidência não encontrada!", "danger")
-            return redirect(url_for('incidencias'))
-
-        data_formatada = incidencia[2].strftime('%d/%m/%y') if incidencia[2] else None
-        incidencia_dict = {
-            "id": incidencia[0],
-            "linha": incidencia[1],
-            "data_auditoria": data_formatada,
-            "auditor": incidencia[3],
-            "pergunta": incidencia[4],
-            "nao_conformidade": incidencia[5],
-            "acao_corretiva": incidencia[6],
-            "prazo": incidencia[7],
-            "resolvido": incidencia[8],
-            "comentario_resolucao": incidencia[9]
-        }
-
-        if incidencia[9] == 'False':
-            return render_template('2_camada/verificar_incidencia2.html', incidencia=incidencia_dict)
-        else:
-            return render_template('2_camada/resolver_incidencia2.html', incidencia=incidencia_dict)
-
-    except Exception as e:
-        print(f'Erro ao carregar a incidência: {str(e)}', 'error')
-        return redirect(url_for('incidencias2'))
-
-
     #########################  FIM 2º CAMADA #####################################
 
     #########################  3º CAMADA  #####################################
@@ -1624,7 +1688,7 @@ def get_user_data3():
     try:
         conn = get_db_connection()
         query = """
-            SELECT Nr_colaborador, username 
+            SELECT Nr_colaborador, name 
             FROM dbo.users 
             WHERE id = ?
         """
@@ -1709,7 +1773,7 @@ def save_lpa3():
                     VALUES (?, ?, ?, ?, ?)
                 """
                 cursor.execute(insert_query, (user_id, linha_pergunta_id, resposta, data_auditoria, registo_peca))
-                lpa2_id = cursor.fetchone()[0]
+                lpa3_id = cursor.fetchone()[0]
 
                 if resposta == "NOK":
                     nao_conformidade = item.get("nao_conformidade")
@@ -1723,7 +1787,7 @@ def save_lpa3():
                         INSERT INTO dbo.Incidencias (id_LPA, nao_conformidade, acao_corretiva, prazo, camada)
                         VALUES (?, ?, ?, ?, ?)
                     """
-                    cursor.execute(insert_incidencia_query, (lpa2_id, nao_conformidade, acao_corretiva, prazo, 3)) 
+                    cursor.execute(insert_incidencia_query, (lpa3_id, nao_conformidade, acao_corretiva, prazo, 3)) 
 
         conn.commit()
         return jsonify({"success": "LPA 3ª Camada guardado com sucesso!"})
@@ -1856,202 +1920,6 @@ def get_lpa_data3():
 
     except Exception as e:
         return jsonify({"error": f"Erro ao buscar LPAs: {str(e)}"}), 500
-
-
-    
-@app.route('/incidencias3')
-def incidencias3():
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-
-    try:
-        data_inicio = request.args.get('data_inicio', '')
-        data_fim = request.args.get('data_fim', '')
-
-        query = """
-               SELECT 
-            i.id, 
-            l.linha, 
-            COALESCE(lpa_3.data_auditoria, lpa_2.data_auditoria, lpa.data_auditoria) AS data_auditoria,
-            COALESCE(p3.username, p2.username, p1.username) AS auditor,
-            COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
-            i.nao_conformidade, 
-            i.acao_corretiva, 
-            i.prazo,
-            i.resolvido,
-            i.comentario_resolucao,
-            i.camada 
-        FROM dbo.Incidencias i
-        LEFT JOIN dbo.LPA lpa ON i.id_LPA = lpa.id AND i.camada = 1  
-        LEFT JOIN dbo.LPA_2 lpa_2 ON i.id_LPA = lpa_2.id AND i.camada = 2  
-        LEFT JOIN dbo.LPA_3 lpa_3 ON i.id_LPA = lpa_3.id AND i.camada = 3
-        LEFT JOIN dbo.users p1 ON lpa.id_user = p1.id
-        LEFT JOIN dbo.users p2 ON lpa_2.id_user = p2.id 
-        LEFT JOIN dbo.users p3 ON lpa_3.id_user = p3.id 
-        JOIN dbo.linha_pergunta lp ON COALESCE(lpa.linha_pergunta_id, lpa_2.linha_pergunta_id, lpa_3.linha_pergunta_id) = lp.id
-        JOIN dbo.linhas l ON lp.linha_id = l.id
-        LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
-        LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
-        WHERE 1=1  
-        """
-
-        params = []
-
-        if data_inicio:
-            query += " AND CONVERT(DATE, COALESCE(lpa_3.data_auditoria, lpa_2.data_auditoria, lpa.data_auditoria)) >= CONVERT(DATE, ?)"
-            params.append(data_inicio)
-
-        if data_fim:
-            query += " AND CONVERT(DATE, COALESCE(lpa_3.data_auditoria, lpa_2.data_auditoria, lpa.data_auditoria)) <= CONVERT(DATE, ?)"
-            params.append(data_fim)
-
-
-        query += " ORDER BY data_auditoria DESC"
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        results = cursor.fetchall()
-        conn.close()
-
-        incidencias = []
-        for row in results:
-            incidencia = {
-                "id": row[0],
-                "linha": row[1],
-                "data_auditoria": row[2],
-                "auditor": row[3],
-                "pergunta": row[4],
-                "nao_conformidade": row[5],
-                "acao_corretiva": row[6],
-                "prazo": row[7],
-                "resolvido": row[8] if row[8] is not None else None, 
-                "comentario_resolucao": row[9]
-            }
-            incidencias.append(incidencia)
-
-        return render_template('3_camada/incidencias3.html', 
-                              incidencias=incidencias, 
-                              data_inicio=data_inicio,
-                              data_fim=data_fim)
-
-    except Exception as e:
-        print(f'Erro ao carregar incidências: {str(e)}', 'error')
-        return redirect(url_for('index'))
-    
-@app.route('/resolver_incidencia3', methods=['GET', 'POST'])
-def resolver_incidencia3():
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-
-    try:
-        request_id = request.args.get('id', '')
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT Nr_Colaborador FROM dbo.users WHERE id = ?", (session['user_id'],))
-        logged_in_user = cursor.fetchone()
-
-        if request.method == 'POST':
-            if 'id_colaborador' in request.form:
-                id_colaborador = request.form.get('id_colaborador')
-
-                if not logged_in_user or str(id_colaborador) != str(logged_in_user[0]):
-                    conn.close()
-                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                        return jsonify({"success": False, "error": "Número de colaborador inválido."}), 400
-                    else:
-                        flash("Número de colaborador inválido.", "danger")
-                        return redirect(url_for('incidencias'))
-
-                cursor.execute("""
-                    UPDATE dbo.Incidencias
-                    SET resolvido = 'True',
-                        comentario_resolucao = CONCAT(comentario_resolucao,
-                        CHAR(13) + CHAR(10) + CHAR(13) + CHAR(10) +
-                        'Verificado por: ', ?)
-                    WHERE id = ?
-                """, (id_colaborador, request_id))
-
-                cursor.execute("""
-                    UPDATE dbo.LPA_3
-                    SET resposta = 'OK'
-                    WHERE id = (SELECT id_LPA FROM dbo.Incidencias WHERE id = ?)
-                """, (request_id,))
-            else:
-                comentario_resolucao = request.form.get('comentario')
-
-                cursor.execute("""
-                    UPDATE dbo.Incidencias
-                    SET resolvido = 'False', comentario_resolucao = ?
-                    WHERE id = ?
-                """, (comentario_resolucao, request_id))
-
-            conn.commit()
-            conn.close()
-
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({"success": True})
-
-            return redirect(url_for('incidencias'))
-
-        # GET request - Exibir o formulário
-  
-        query = """
-            SELECT
-                i.id,
-                l.linha,
-                lpa3.data_auditoria,
-                p.username AS auditor,
-                COALESCE(pq.pergunta, lp_esp.pergunta) AS pergunta,
-                i.nao_conformidade,
-                i.acao_corretiva,
-                i.prazo,
-                i.resolvido,
-                i.comentario_resolucao
-            FROM dbo.Incidencias i
-            JOIN dbo.LPA_3 lpa3 ON i.id_LPA = lpa3.id
-            JOIN dbo.linha_pergunta lp ON lpa3.linha_pergunta_id = lp.id
-            JOIN dbo.linhas l ON lp.linha_id = l.id
-            LEFT JOIN dbo.perguntas pq ON lp.pergunta_id = pq.id
-            LEFT JOIN dbo.linha_pergunta_especifica lp_esp ON lp.linha_pergunta_especifica_id = lp_esp.id
-            JOIN dbo.users p ON lpa3.id_user = p.id
-            WHERE i.id = ?
-        """
-
-        cursor.execute(query, (request_id,))
-        incidencia = cursor.fetchone()
-        conn.close()
-
-        if not incidencia:
-            flash("Incidência não encontrada!", "danger")
-            return redirect(url_for('incidencias'))
-
-        data_formatada = incidencia[2].strftime('%d/%m/%y') if incidencia[2] else None
-        incidencia_dict = {
-            "id": incidencia[0],
-            "linha": incidencia[1],
-            "data_auditoria": data_formatada,
-            "auditor": incidencia[3],
-            "pergunta": incidencia[4],
-            "nao_conformidade": incidencia[5],
-            "acao_corretiva": incidencia[6],
-            "prazo": incidencia[7],
-            "resolvido": incidencia[8],
-            "comentario_resolucao": incidencia[9]
-        }
-
-        if incidencia[9] == 'False':
-            return render_template('3_camada/verificar_incidencia2.html', incidencia=incidencia_dict)
-        else:
-            return render_template('3_camada/resolver_incidencia2.html', incidencia=incidencia_dict)
-
-    except Exception as e:
-        print(f'Erro ao carregar a incidência: {str(e)}', 'error')
-        return redirect(url_for('incidencias3'))
-
-
-
 
     #########################  FIM 3º CAMADA  #####################################
     

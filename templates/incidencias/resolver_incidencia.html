@@ -49,7 +49,7 @@
                                         <div class="flex-grow-1">{{ incidencia.data_auditoria }}</div>
                                     </div>
                                 </div>
-                
+
                                 <!-- Detalhes do Problema -->
                                 <div class="list-group-item bg-light py-2">
                                     <h6 class="font-weight-bold text-gray-800 mb-0">Detalhes do Problema</h6>
@@ -58,6 +58,16 @@
                                     <div class="row no-gutters">
                                         <div class="col-md-3 font-weight-bold text-primary py-1">Pergunta:</div>
                                         <div class="col-md-9 py-1 px-md-3">{{ incidencia.pergunta }}</div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item">
+                                    <div class="row no-gutters">
+                                        <div class="col-md-3 font-weight-bold text-primary py-1">Resposta:</div>
+                                        <div class="col-md-9 py-1 px-md-3">
+                                            <span class="{% if incidencia.resposta == 'OK' %}status-ok{% else %}status-nok{% endif %}">
+                                                {{ incidencia.resposta }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="list-group-item">
@@ -75,19 +85,9 @@
                                 <div class="list-group-item">
                                     <div class="row no-gutters">
                                         <div class="col-md-3 font-weight-bold text-primary py-1">Prazo:</div>
-                                        <div class="col-md-9 py-1 px-md-3 font-weight-bold">{{ incidencia.prazo }}</div>
+                                        <div class="col-md-9 py-1 px-md-3 font-weight-bold">{{ incidencia.prazo.strftime('%d/%m/%Y') }}</div>
                                     </div>
                                 </div>
-                                <div class="list-group-item">
-                                    <div class="row no-gutters">
-                                        <div class="col-md-3 font-weight-bold text-primary py-1">Resposta:</div>
-                                        <div class="col-md-9 py-1 px-md-3">
-                                            <span class="{% if incidencia.resposta == 'OK' %}status-ok{% else %}status-nok{% endif %}">
-                                                {{ incidencia.resposta }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    
                             </div>
                         </div>
                     </div>
@@ -107,15 +107,15 @@
                                     <small class="form-text text-muted">Descreva as ações tomadas para resolver esta não conformidade.</small>
                                 </div>
                             </div>
-                            <div class="card-footer bg-white border-0">
-                                <div class="d-flex flex-column flex-sm-row justify-content-center">
-                                    <button type="submit" class="btn btn-success btn-lg mb-3 mb-sm-0 px-5">
-                                        <i class="fas fa-check mr-2"></i> Confirmar Resolução
-                                    </button>
-                                    <a href="{{ url_for('incidencias') }}" class="btn btn-secondary btn-lg ml-sm-3">
-                                        <i class="fas fa-times mr-2"></i> Cancelar
-                                    </a>
-                                </div>
+                                <div class="card-footer bg-white border-0">
+                                    <div class="d-flex flex-column flex-sm-row justify-content-center">
+                                        <button type="submit" class="btn btn-success btn-lg mb-3 mb-sm-0 px-5">
+                                            <i class="fas fa-check mr-2"></i> Confirmar Resolução
+                                        </button>
+                                        <a href="{{ url_for('incidencias') }}" class="btn btn-secondary btn-lg ml-sm-3">
+                                            <i class="fas fa-times mr-2"></i> Cancelar
+                                        </a>
+                                    </div>
                             </div>
                         </form>
                     </div>
@@ -158,7 +158,6 @@
             background-color: #f8f9fc !important;
         }
         
-        
         /* Padding responsivo */
         @media (max-width: 768px) {
             .container-fluid {
@@ -173,8 +172,8 @@
             
             .btn-lg {
                 width: 100%;
-                padding: 0.75rem;
-                font-size: 1rem;
+                padding: 15px;
+                font-size: 12px;
             }
             
             .card-body {
@@ -192,8 +191,9 @@
             
             $("#resolverForm").submit(function(event) {
                 event.preventDefault(); 
-        
-                var formData = $(this).serialize();
+                
+                var comentario = $("#comentario").val();
+                var formData = { comentario: comentario };
                 
                 // Botão de submit com loading
                 var $submitBtn = $(this).find('button[type="submit"]');
@@ -206,7 +206,7 @@
                     data: formData,
                     dataType: "json",
                     success: function(response) {
-                        toastr.success('Incidência resolvida com sucesso!');
+                        toastr.success('Resolução registrada com sucesso! Aguardando verificação.');
                         setTimeout(function() {
                             window.location.href = "{{ url_for('incidencias') }}"; 
                         }, 1500); 

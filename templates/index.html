@@ -325,104 +325,170 @@
     </div>
 
     {% include 'reset_password.html' %}
-    <script>
-        // Handle regular menu items
-        document.querySelectorAll('.nav-link:not(#realizarLPA)').forEach(function (item) {
-            item.addEventListener('click', function () {
-                var targetPage = this.getAttribute("data-target"); 
-                document.getElementById("redirect_page").value = targetPage || "index"; 
-                
-                // Regular form submission for normal menu items
-                var loginForm = document.getElementById('loginForm');
-                loginForm.action = "/login";
-                loginForm.method = "POST";
-                
-                var myModal = new bootstrap.Modal(document.getElementById('modalLogin'));
-                myModal.show();
-            });
-        });
 
-        // Special handler for "Realizar LPA" link
-        document.getElementById('realizarLPA').addEventListener('click', function() {
-            // Show login modal first
-            var loginModal = new bootstrap.Modal(document.getElementById('modalLogin'));
-            var loginForm = document.getElementById('loginForm');
-            
-            // Remove previous event listeners
-            var newLoginForm = loginForm.cloneNode(true);
-            loginForm.parentNode.replaceChild(newLoginForm, loginForm);
-            loginForm = newLoginForm;
-            
-            // Handle form submission for "Realizar LPA"
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault(); // Prevent normal form submission
-                
-                var formData = new FormData(this);
-                formData.append('is_lpa_login', 'true'); // Add flag for LPA login
-                
-                fetch('/login', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        loginModal.hide();
-                        
-                        if (data.role === 'admin') {
-                            // For admin, show the layer selection modal
-                            setTimeout(function() {
-                                var adminModal = new bootstrap.Modal(document.getElementById('modalAdminLayerSelection'));
-                                adminModal.show();
-                            }, 500);
-                        } else {
-                            // For other roles, redirect to their specific page based on role
-                            if (data.role === 'TL') {
-                                window.location.href = '/home';
-                            } else if (data.role === 'PL') {
-                                window.location.href = '/2_camada';
-                            } else if (data.role === 'PLM') {
-                                window.location.href = '/3_camada';
-                            } else {
-                                // Fallback or for other roles
-                                toastr["error"]("Você não tem permissão para aceder esta página.");
-                            }
-                        }
+    <!-- Modal de Alteração de Palavra-passe (Primeiro Login) -->
+<div class="modal fade" id="modalFirstLogin" tabindex="-1" role="dialog" aria-labelledby="modalFirstLoginLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalFirstLoginLabel">Alterar Palavra-passe</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar">
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Este é o seu primeiro acesso. Por motivos de segurança, é necessário alterar a sua palavra-passe.
+                </div>
+                <form id="firstLoginForm">
+                    <div class="form-group mb-3">
+                        <label for="new_password" style="color:black;">Nova Palavra-passe</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" placeholder="Digite a nova palavra-passe" required>
+                    </div>
+                    <div class="form-group mb-4">
+                        <label for="confirm_password" style="color:black;">Confirmar Palavra-passe</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirme a nova palavra-passe" required>
+                    </div>
+                    <div class="alert alert-danger d-none" id="password-error">
+                        As palavras-passe não coincidem!
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-login">Alterar Palavra-passe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('realizarLPA').addEventListener('click', function () {
+        var loginModal = new bootstrap.Modal(document.getElementById('modalLogin'));
+        var loginForm = document.getElementById('loginForm');
+    
+        // Remove previous event listeners
+        var newLoginForm = loginForm.cloneNode(true);
+        loginForm.parentNode.replaceChild(newLoginForm, loginForm);
+        loginForm = newLoginForm;
+    
+        loginForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+    
+            var formData = new FormData(this);
+            formData.append('is_lpa_login', 'true');
+    
+            fetch('/login', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loginModal.hide();
+    
+                    if (data.status === false) {
+                        // Se o status for falso (primeiro login), exibe o modal de primeiro login
+                        setTimeout(function () {
+                            const firstLoginModal = new bootstrap.Modal(document.getElementById('modalFirstLogin'));
+                            firstLoginModal.show();
+                        }, 500);
+                    } else if (data.role === 'admin') {
+                        setTimeout(function () {
+                            var adminModal = new bootstrap.Modal(document.getElementById('modalAdminLayerSelection'));
+                            adminModal.show();
+                        }, 500);
                     } else {
-                        // Login failed
-                        toastr["error"](data.message || "Credenciais inválidas. Tente novamente.");
+                        if (data.role === 'TL') {
+                            window.location.href = '/home';
+                        } else if (data.role === 'PL') {
+                            window.location.href = '/2_camada';
+                        } else if (data.role === 'PLM') {
+                            window.location.href = '/3_camada';
+                        } else {
+                            toastr["error"]("Você não tem permissão para aceder esta página.");
+                        }
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    toastr["error"]("Erro ao fazer login. Tente novamente.");
-                });
-            });
-            
-            loginModal.show();
-        });
-
-        // Layer selection buttons in admin modal
-        document.querySelectorAll('.layer-btn').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const page = this.getAttribute('data-page');
-                window.location.href = '/' + page;
+                } else {
+                    toastr["error"](data.message || "Credenciais inválidas. Tente novamente.");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                toastr["error"]("Erro ao fazer login. Tente novamente.");
             });
         });
-        
-        document.addEventListener("DOMContentLoaded", function () {
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        toastr["{{ category }}"]("{{ message }}");
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+    
+        loginModal.show();
+    });
+    
+    
+    // Submissão do formulário de primeiro login
+    document.getElementById('firstLoginForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+    
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const errorElement = document.getElementById('password-error');
+    
+        if (newPassword !== confirmPassword) {
+            errorElement.classList.remove('d-none');
+            return;
+        }
+    
+        errorElement.classList.add('d-none');
+    
+        fetch('/change_first_password', {
+            method: 'POST',
+            body: new FormData(this),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const firstLoginModal = bootstrap.Modal.getInstance(document.getElementById('modalFirstLogin'));
+                firstLoginModal.hide();
+                toastr["success"](data.message);
+            } else {
+                toastr["error"](data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toastr["error"]("Erro ao alterar a palavra-passe. Tente novamente.");
         });
+    });
+    
+    document.addEventListener("DOMContentLoaded", function () {
+        // Adiciona evento de clique nos botões de seleção de camada
+        const layerButtons = document.querySelectorAll(".layer-btn");
+        layerButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                const page = this.getAttribute("data-page");
+                if (page) {
+                    window.location.href = `/${page}`;
+                } else {
+                    toastr.error("Página não encontrada. Tente novamente.");
+                }
+            });
+        });
+    });
+    
+    // Toasts Flask (mensagens flash)
+    document.addEventListener("DOMContentLoaded", function () {
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    toastr["{{ category }}"]("{{ message }}");
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    });
     </script>
+    
     
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
